@@ -4,7 +4,7 @@
   "description": "French translation pipeline for A Field Manual to Healing Trauma",
   "private": true,
   "dependencies": {
-    "mammoth": "^1.7.1",
-    "docx": "^8.5.0"
+    "adm-zip": "^0.5.10",
+    "mammoth": "^1.7.1"
   }
 }
