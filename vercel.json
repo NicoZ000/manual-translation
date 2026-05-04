@@ -1,16 +1,7 @@
 {
   "functions": {
     "api/translate.js": {
-      "maxDuration": 120
-    },
-    "api/pass/one.js": {
-      "maxDuration": 120
-    },
-    "api/pass/two.js": {
-      "maxDuration": 120
-    },
-    "api/pass/three.js": {
-      "maxDuration": 120
+      "maxDuration": 60
     }
   },
   "regions": ["fra1"]
