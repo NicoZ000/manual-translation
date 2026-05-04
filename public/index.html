@@ -465,9 +465,24 @@ async function restoreInBrowser(translatedLines) {
     xml = xml.slice(0, start) + newBlock + xml.slice(end);
   }
 
-  // Write modified XML back into zip, output as Uint8Array → base64
-  zip.file('word/document.xml', xml);
-  const outBytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+  // Rebuild zip: preserve every original file at its original compression level.
+  // Only word/document.xml gets replaced — stored uncompressed (STORE) so Word
+  // can read it without any codec mismatch. All other entries copied as-is.
+  const outZip = new JSZip();
+
+  const files = zip.files;
+  for (const name of Object.keys(files)) {
+    const entry = files[name];
+    if (entry.dir) { outZip.folder(name); continue; }
+    if (name === 'word/document.xml') continue; // replaced below
+    // Preserve original raw compressed bytes to avoid re-encoding
+    const raw = await entry.async('uint8array');
+    outZip.file(name, raw, { compression: 'DEFLATE' });
+  }
+  // Add modified XML uncompressed — avoids any codec/CRC mismatch
+  outZip.file('word/document.xml', xml, { compression: 'STORE' });
+
+  const outBytes = await outZip.generateAsync({ type: 'uint8array' });
   let b64 = '';
   const CHUNK = 8192;
   for (let i = 0; i < outBytes.length; i += CHUNK)
