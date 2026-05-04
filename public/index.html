@@ -175,18 +175,35 @@ drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('
 async function onFile(file) {
   err('');
   if (!file.name.endsWith('.docx')) { err('Please upload a .docx file.'); return; }
+
   fileBytes = await file.arrayBuffer();
   markerLines = [];
   outputB64 = null;
 
-  await buildMarkers();  // sets markerLines, counts words from XML
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileBar').classList.add('on');
+  document.getElementById('wcBadge').textContent = 'Reading…';
+  document.getElementById('wcBadge').className = 'wc-badge';
+
+  try {
+    await buildMarkers();
+  } catch (e) {
+    err(`Failed to read file: ${e.message}`);
+    document.getElementById('wcBadge').textContent = 'Error';
+    document.getElementById('goBtn').disabled = true;
+    return;
+  }
+
+  if (!markerLines.length) {
+    err('No text found in document. Please check the file.');
+    document.getElementById('wcBadge').textContent = 'Empty';
+    document.getElementById('goBtn').disabled = true;
+    return;
+  }
 
   const wc = markerLines.reduce((n, l) => n + l.replace(/\u27e6[^\]]+\u27e7/, '').split(/\s+/).filter(Boolean).length, 0);
   const pages = Math.ceil(wc / WORDS_PER_PAGE);
-
   const badge = document.getElementById('wcBadge');
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileBar').classList.add('on');
 
   if (wc > 50000) {
     badge.textContent = `${wc.toLocaleString()} words — over limit`;
@@ -202,9 +219,22 @@ async function onFile(file) {
 
 // ── Marker extraction (regex on raw XML — no DOMParser, no recursion) ─────────
 async function buildMarkers() {
-  const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
-  const zip = await JSZip.loadAsync(fileBytes);
-  const xml = await zip.file('word/document.xml').async('string');
+  let JSZip;
+  try {
+    JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+  } catch (e) {
+    throw new Error('Could not load JSZip library. Check your internet connection.');
+  }
+
+  let zip, xml;
+  try {
+    zip = await JSZip.loadAsync(fileBytes);
+    const entry = zip.file('word/document.xml');
+    if (!entry) throw new Error('word/document.xml not found — is this a valid .docx file?');
+    xml = await entry.async('string');
+  } catch (e) {
+    throw new Error(`Could not read docx: ${e.message}`);
+  }
 
   // Build skip zones for sdt / tbl / tc / tr / hyperlink
   function zones(src, openRe, closeRe) {
