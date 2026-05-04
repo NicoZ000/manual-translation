@@ -219,12 +219,8 @@ async function onFile(file) {
 
 // ── Marker extraction (regex on raw XML — no DOMParser, no recursion) ─────────
 async function buildMarkers() {
-  let JSZip;
-  try {
-    JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
-  } catch (e) {
-    throw new Error('Could not load JSZip library. Check your internet connection.');
-  }
+  const JSZip = window.JSZip;
+  if (!JSZip) throw new Error('JSZip not loaded');
 
   let zip, xml;
   try {
@@ -420,7 +416,7 @@ async function restoreInBrowser(translatedLines) {
   if (key) translations[key] = parts.join(' ').trim();
 
   // Load original docx zip (fileBytes is the ArrayBuffer kept in memory)
-  const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+  const JSZip = window.JSZip;
   const zip = await JSZip.loadAsync(fileBytes);
   let xml = await zip.file('word/document.xml').async('string');
 
