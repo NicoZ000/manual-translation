@@ -465,28 +465,192 @@ async function restoreInBrowser(translatedLines) {
     xml = xml.slice(0, start) + newBlock + xml.slice(end);
   }
 
-  // Rebuild zip: preserve every original file at its original compression level.
-  // Only word/document.xml gets replaced — stored uncompressed (STORE) so Word
-  // can read it without any codec mismatch. All other entries copied as-is.
-  const outZip = new JSZip();
+  // ── Raw zip surgery: replace word/document.xml bytes without repackaging ──
+  // JSZip.generateAsync always recompresses everything, breaking Word's zip validation.
+  // Instead we patch the original zip bytes directly:
+  //   1. Find word/document.xml local file entry
+  //   2. Replace compressed data with uncompressed new XML (method=STORE)
+  //   3. Fix local file header (sizes, CRC, method)
+  //   4. Rebuild central directory with updated offsets and sizes
 
-  const files = zip.files;
-  for (const name of Object.keys(files)) {
-    const entry = files[name];
-    if (entry.dir) { outZip.folder(name); continue; }
-    if (name === 'word/document.xml') continue; // replaced below
-    // Preserve original raw compressed bytes to avoid re-encoding
-    const raw = await entry.async('uint8array');
-    outZip.file(name, raw, { compression: 'DEFLATE' });
+  const enc  = new TextEncoder();
+  const newXmlBytes = enc.encode(xml);
+  const orig = new Uint8Array(fileBytes);
+  const view = new DataView(orig.buffer);
+
+  // CRC-32 table
+  const crcTable = (() => {
+    const t = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[i] = c;
+    }
+    return t;
+  })();
+  function crc32(buf) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
   }
-  // Add modified XML uncompressed — avoids any codec/CRC mismatch
-  outZip.file('word/document.xml', xml, { compression: 'STORE' });
 
-  const outBytes = await outZip.generateAsync({ type: 'uint8array' });
+  const TARGET = 'word/document.xml';
+  const targetBytes = enc.encode(TARGET);
+
+  // Scan local file entries (signature 0x04034B50)
+  // Track all entries to rebuild central directory
+  const localEntries = []; // { offset, nameLen, extraLen, compSize, dataOffset }
+  let pos = 0;
+  while (pos < orig.length - 4) {
+    const sig = view.getUint32(pos, true);
+    if (sig !== 0x04034B50) break;
+    const compMethod  = view.getUint16(pos + 8,  true);
+    const compSize    = view.getUint32(pos + 18, true);
+    const nameLen     = view.getUint16(pos + 26, true);
+    const extraLen    = view.getUint16(pos + 28, true);
+    const dataOffset  = pos + 30 + nameLen + extraLen;
+    localEntries.push({ offset: pos, nameLen, extraLen, compSize, dataOffset,
+                        headerSize: 30 + nameLen + extraLen });
+    pos = dataOffset + compSize;
+  }
+
+  // Find central directory (signature 0x02014B50) — starts after all local entries
+  let cdStart = pos;
+  // Scan forward for end of central directory record (0x06054B50)
+  let eocd = -1;
+  for (let i = orig.length - 22; i >= 0; i--) {
+    if (view.getUint32(i, true) === 0x06054B50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('Cannot find zip end-of-central-directory record');
+
+  const cdOffset = view.getUint32(eocd + 16, true);
+  const cdSize   = view.getUint32(eocd + 12, true);
+
+  // Parse central directory entries
+  const cdEntries = [];
+  let cdPos = cdOffset;
+  while (cdPos < cdOffset + cdSize) {
+    if (view.getUint32(cdPos, true) !== 0x02014B50) break;
+    const nameLen   = view.getUint16(cdPos + 28, true);
+    const extraLen  = view.getUint16(cdPos + 30, true);
+    const commentLen= view.getUint16(cdPos + 32, true);
+    const localOff  = view.getUint32(cdPos + 42, true);
+    const entrySize = 46 + nameLen + extraLen + commentLen;
+    cdEntries.push({ cdPos, nameLen, extraLen, commentLen, localOff, entrySize,
+                     raw: orig.slice(cdPos, cdPos + entrySize) });
+    cdPos += entrySize;
+  }
+
+  // Build new zip bytes
+  const parts = [];
+  let writeOffset = 0;
+  const newLocalOffsets = new Map(); // name → new local offset
+
+  for (const le of localEntries) {
+    const nameSlice = orig.slice(le.offset + 30, le.offset + 30 + le.nameLen);
+    const name = new TextDecoder().decode(nameSlice);
+    newLocalOffsets.set(name, writeOffset);
+
+    if (name === TARGET) {
+      // Write new local file header with STORE method
+      const newCrc  = crc32(newXmlBytes);
+      const newSize = newXmlBytes.length;
+      const header  = new Uint8Array(30 + le.nameLen + le.extraLen);
+      const hv      = new DataView(header.buffer);
+      hv.setUint32(0,  0x04034B50, true); // signature
+      hv.setUint16(4,  20, true);          // version needed
+      hv.setUint16(6,  0,  true);          // flags
+      hv.setUint16(8,  0,  true);          // method: STORE
+      hv.setUint16(10, view.getUint16(le.offset + 10, true), true); // mod time
+      hv.setUint16(12, view.getUint16(le.offset + 12, true), true); // mod date
+      hv.setUint32(14, newCrc,  true);     // CRC-32
+      hv.setUint32(18, newSize, true);     // compressed size
+      hv.setUint32(22, newSize, true);     // uncompressed size
+      hv.setUint16(26, le.nameLen,  true);
+      hv.setUint16(28, le.extraLen, true);
+      header.set(nameSlice, 30);
+      // extra field (copy original)
+      header.set(orig.slice(le.offset + 30 + le.nameLen, le.offset + 30 + le.nameLen + le.extraLen),
+                 30 + le.nameLen);
+      parts.push(header);
+      parts.push(newXmlBytes);
+      writeOffset += header.length + newXmlBytes.length;
+    } else {
+      // Copy original entry verbatim (header + compressed data)
+      const entryBytes = orig.slice(le.offset, le.dataOffset + le.compSize);
+      parts.push(entryBytes);
+      writeOffset += entryBytes.length;
+    }
+  }
+
+  // Rebuild central directory
+  const newCdStart = writeOffset;
+  const newCdParts = [];
+
+  for (const cde of cdEntries) {
+    const nameSlice = cde.raw.slice(46, 46 + cde.nameLen);
+    const name = new TextDecoder().decode(nameSlice);
+    const newLocalOff = newLocalOffsets.get(name) ?? cde.localOff;
+
+    if (name === TARGET) {
+      // Rebuild CD entry for the replaced file
+      const newCrc  = crc32(newXmlBytes);
+      const newSize = newXmlBytes.length;
+      const cd = new Uint8Array(cde.entrySize);
+      const cv = new DataView(cd.buffer);
+      cv.setUint32(0,  0x02014B50, true);
+      cv.setUint16(4,  20, true);  // version made by
+      cv.setUint16(6,  20, true);  // version needed
+      cv.setUint16(8,  0,  true);  // flags
+      cv.setUint16(10, 0,  true);  // method: STORE
+      cv.setUint16(12, new DataView(cde.raw.buffer, cde.raw.byteOffset).getUint16(12, true), true); // mod time
+      cv.setUint16(14, new DataView(cde.raw.buffer, cde.raw.byteOffset).getUint16(14, true), true); // mod date
+      cv.setUint32(16, newCrc,  true);
+      cv.setUint32(20, newSize, true);
+      cv.setUint32(24, newSize, true);
+      cv.setUint16(28, cde.nameLen,    true);
+      cv.setUint16(30, cde.extraLen,   true);
+      cv.setUint16(32, cde.commentLen, true);
+      cv.setUint16(34, 0, true); // disk start
+      cv.setUint16(36, 0, true); // int attrs
+      cv.setUint32(38, new DataView(cde.raw.buffer, cde.raw.byteOffset).getUint32(38, true), true); // ext attrs
+      cv.setUint32(42, newLocalOff, true);
+      cd.set(nameSlice, 46);
+      if (cde.extraLen)   cd.set(cde.raw.slice(46 + cde.nameLen, 46 + cde.nameLen + cde.extraLen),   46 + cde.nameLen);
+      if (cde.commentLen) cd.set(cde.raw.slice(46 + cde.nameLen + cde.extraLen), 46 + cde.nameLen + cde.extraLen);
+      newCdParts.push(cd);
+    } else {
+      // Copy original CD entry but update local offset
+      const cd = new Uint8Array(cde.raw);
+      new DataView(cd.buffer).setUint32(42, newLocalOff, true);
+      newCdParts.push(cd);
+    }
+  }
+
+  // End of central directory record
+  const totalCdSize = newCdParts.reduce((n, p) => n + p.length, 0);
+  const eocdRec = new Uint8Array(22);
+  const ev = new DataView(eocdRec.buffer);
+  ev.setUint32(0,  0x06054B50, true);
+  ev.setUint16(4,  0, true);
+  ev.setUint16(6,  0, true);
+  ev.setUint16(8,  cdEntries.length, true);
+  ev.setUint16(10, cdEntries.length, true);
+  ev.setUint32(12, totalCdSize, true);
+  ev.setUint32(16, newCdStart,  true);
+  ev.setUint16(20, 0, true);
+
+  // Concatenate everything
+  const allParts = [...parts, ...newCdParts, eocdRec];
+  const totalLen = allParts.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(totalLen);
+  let off = 0;
+  for (const p of allParts) { out.set(p, off); off += p.length; }
+
   let b64 = '';
   const CHUNK = 8192;
-  for (let i = 0; i < outBytes.length; i += CHUNK)
-    b64 += String.fromCharCode(...outBytes.subarray(i, i + CHUNK));
+  for (let i = 0; i < out.length; i += CHUNK)
+    b64 += String.fromCharCode(...out.subarray(i, i + CHUNK));
 
   return { b64: btoa(b64), count: replacements.length };
 }
