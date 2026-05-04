@@ -471,11 +471,13 @@ function setProgress(pct) {
   document.getElementById('progressFill').style.width = pct + '%';
 }
 
+const PASS_URLS = { 1: '/api/pass/one', 2: '/api/pass/two', 3: '/api/pass/three' };
+
 async function callAPI(text, pass) {
-  const res = await fetch('/api/translate', {
+  const res = await fetch(PASS_URLS[pass], {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, pass })
+    body: JSON.stringify({ text })
   });
   const raw = await res.text();
   let data;
