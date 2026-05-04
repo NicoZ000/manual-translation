@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Field Manual — French Translation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    :root {
+      --cream: #FBF5EA;
+      --surface: #FFF9F1;
+      --surface2: #EEF0DE;
+      --card: #FFF9F1;
+      --border: #D8CCB8;
+      --sage: #9BA85A;
+      --moss: #7C8450;
+      --terracotta: #D98B3A;
+      --amber: #E9B85C;
+      --sand: #EBCF97;
+      --text: #5D472F;
+      --text2: #7B6750;
+      --text3: #9B8A76;
+      --error: #C97A63;
+      --success: #8FAF6B;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+    .logo span { color: var(--terracotta); }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 52px 32px;
+      text-align: center;
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--sage); background: var(--surface2); }
+    .upload-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon {
+      width: 48px; height: 48px;
+      background: var(--surface2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 22px;
+    }
+    .upload-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .upload-hint { font-size: 13px; color: var(--text3); }
+
+    /* File info bar */
+    .file-info {
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-top: 16px;
+      align-items: center;
+      gap: 14px;
+    }
+    .file-info.visible { display: flex; }
+    .file-icon { font-size: 20px; flex-shrink: 0; }
+    .file-name { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; }
+    .word-count {
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+    .word-count.ok { background: #EAF3DE; color: #3B6D11; }
+    .word-count.warn { background: #FAEEDA; color: #854F0B; }
+    .word-count.over { background: #FCEAE7; color: #993C1D; }
+
+    /* Pipeline stages */
+    .stages {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stage {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 22px;
+      transition: border-color 0.2s;
+    }
+    .stage.active { border-color: var(--amber); }
+    .stage.done { border-color: var(--success); }
+    .stage.error { border-color: var(--error); }
+
+    .stage-header { display: flex; align-items: center; gap: 12px; }
+    .stage-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 500; color: var(--text2);
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+    .stage.active .stage-num { background: var(--amber); color: var(--text); }
+    .stage.done .stage-num { background: var(--success); color: white; }
+    .stage.error .stage-num { background: var(--error); color: white; }
+
+    .stage-label {
+      font-size: 14px; font-weight: 500; color: var(--text); flex: 1;
+    }
+    .stage-status {
+      font-size: 12px; color: var(--text3);
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--surface2);
+    }
+    .stage.active .stage-status { background: #FAEEDA; color: #854F0B; }
+    .stage.done .stage-status { background: #EAF3DE; color: #3B6D11; }
+    .stage.error .stage-status { background: #FCEAE7; color: #993C1D; }
+
+    .stage-output {
+      display: none;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.8;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 14px;
+    }
+    .stage.done .stage-output, .stage.error .stage-output { display: block; }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 24px 0;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar.visible { display: block; }
+    .progress-fill {
+      height: 100%;
+      background: var(--terracotta);
+      border-radius: 2px;
+      transition: width 0.6s ease;
+      width: 0%;
+    }
+
+    /* Buttons */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .btn {
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.18s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--terracotta);
+      color: white;
+      flex: 1;
+    }
+    .btn-primary:hover:not(:disabled) { background: #c4792e; }
+
+    .btn-export {
+      background: var(--sage);
+      color: white;
+    }
+    .btn-export:hover:not(:disabled) { background: var(--moss); }
+    .btn-export { display: none; }
+    .btn-export.visible { display: flex; }
+
+    .btn-reset {
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+    .btn-reset:hover { background: var(--border); }
+
+    /* Result panel */
+    .result-panel {
+      display: none;
+      margin-top: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .result-panel.visible { display: block; }
+    .result-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2);
+    }
+    .result-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 17px; font-weight: 600; color: var(--text);
+    }
+    .marker-count {
+      font-size: 12px; color: var(--text3);
+      background: var(--surface);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+    .result-body {
+      padding: 24px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      line-height: 1.9;
+      color: var(--text);
+      white-space: pre-wrap;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* Error message */
+    .error-msg {
+      display: none;
+      background: #FCEAE7;
+      border: 1px solid #E8C4B8;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #993C1D;
+      margin-top: 16px;
+    }
+    .error-msg.visible { display: block; }
+
+    /* Placeholder highlight */
+    .result-body mark {
+      background: #FDF3D0;
+      color: #854F0B;
+      border-radius: 4px;
+      padding: 0 3px;
+      font-family: 'DM Sans', monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Field Manual <span>·</span> Traducteur</div>
+  <div class="subtitle">French Translation Pipeline</div>
+</header>
+
+<main>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" accept=".docx,.txt" id="fileInput" onchange="handleFile(this.files[0])" />
+    <div class="upload-icon">📄</div>
+    <div class="upload-title">Drop your .docx or .txt chapter here</div>
+    <div class="upload-hint">Or click to browse · Maximum 50,000 words</div>
+  </div>
+
+  <div class="file-info" id="fileInfo">
+    <div class="file-icon">📄</div>
+    <div class="file-name" id="fileName">—</div>
+    <div class="word-count" id="wordCount">—</div>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- Progress -->
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Pipeline stages -->
+  <div class="stages" id="stages" style="display:none;">
+    <div class="stage" id="stage1">
+      <div class="stage-header">
+        <div class="stage-num">1</div>
+        <div class="stage-label">Translation — Neo Courtyard voice</div>
+        <div class="stage-status" id="status1">Waiting</div>
+      </div>
+      <div class="stage-output" id="out1"></div>
+    </div>
+    <div class="stage" id="stage2">
+      <div class="stage-header">
+        <div class="stage-num">2</div>
+        <div class="stage-label">French copy editor review</div>
+        <div class="stage-status" id="status2">Waiting</div>
+      </div>
+      <div class="stage-output" id="out2"></div>
+    </div>
+    <div class="stage" id="stage3">
+      <div class="stage-header">
+        <div class="stage-num">3</div>
+        <div class="stage-label">French reader evaluation & final polish</div>
+        <div class="stage-status" id="status3">Waiting</div>
+      </div>
+      <div class="stage-output" id="out3"></div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-primary" id="submitBtn" onclick="runPipeline()" disabled>
+      Translate chapter
+    </button>
+    <button class="btn btn-export" id="exportBtn" onclick="exportDocx()">
+      ⬇ Export to Word
+    </button>
+    <button class="btn btn-reset" onclick="reset()">Reset</button>
+  </div>
+
+  <!-- Final result -->
+  <div class="result-panel" id="resultPanel">
+    <div class="result-header">
+      <div class="result-title">Traduction finale</div>
+      <div class="marker-count" id="markerCount">—</div>
+    </div>
+    <div class="result-body" id="resultBody"></div>
+  </div>
+
+</main>
+
+<script>
+let fileText = '';
+let finalTranslation = '';
+let currentFile = null;
+
+// Drag and drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+async function handleFile(file) {
+  if (!file) return;
+  currentFile = file;
+  showError('');
+
+  if (file.name.endsWith('.docx')) {
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: buf });
+    fileText = result.value;
+  } else {
+    fileText = await file.text();
+  }
+
+  const words = fileText.trim().split(/\s+/).filter(Boolean).length;
+  const fname = document.getElementById('fileName');
+  const wc = document.getElementById('wordCount');
+  const info = document.getElementById('fileInfo');
+  const btn = document.getElementById('submitBtn');
+
+  fname.textContent = file.name;
+  info.classList.add('visible');
+
+  if (words > 50000) {
+    wc.textContent = `${words.toLocaleString()} words — over limit`;
+    wc.className = 'word-count over';
+    btn.disabled = true;
+    showError(`This file has ${words.toLocaleString()} words. Maximum is 50,000. Please split the chapter and upload one section at a time.`);
+  } else if (words > 40000) {
+    wc.textContent = `${words.toLocaleString()} words — large`;
+    wc.className = 'word-count warn';
+    btn.disabled = false;
+  } else {
+    wc.textContent = `${words.toLocaleString()} words`;
+    wc.className = 'word-count ok';
+    btn.disabled = false;
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.toggle('visible', !!msg);
+}
+
+function setStage(n, state, statusText, output) {
+  const stage = document.getElementById('stage' + n);
+  const status = document.getElementById('status' + n);
+  const out = document.getElementById('out' + n);
+  stage.className = 'stage ' + state;
+  status.textContent = statusText;
+  if (output !== undefined) {
+    out.textContent = output.substring(0, 400) + (output.length > 400 ? '...' : '');
+  }
+}
+
+function setProgress(pct) {
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+async function callAPI(text, pass) {
+  const res = await fetch('/api/translate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, pass })
+  });
+  const raw = await res.text();
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(`Server returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 150)}`);
+  }
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!data.result) throw new Error(data.error || 'No result returned');
+  return data.result;
+}
+
+async function runPipeline() {
+  if (!fileText) return;
+  showError('');
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Translating...';
+
+  document.getElementById('stages').style.display = 'flex';
+  document.getElementById('progressBar').classList.add('visible');
+  document.getElementById('resultPanel').classList.remove('visible');
+  document.getElementById('exportBtn').classList.remove('visible');
+  setProgress(5);
+
+  let v1, v2, v3;
+
+  try {
+    // Pass 1
+    setStage(1, 'active', 'Translating...');
+    setProgress(15);
+    v1 = await callAPI(fileText, 1);
+    setStage(1, 'done', 'Done', v1);
+    setProgress(40);
+
+    // Pass 2
+    setStage(2, 'active', 'Editing...');
+    v2 = await callAPI(v1, 2);
+    setStage(2, 'done', 'Done', v2);
+    setProgress(70);
+
+    // Pass 3
+    setStage(3, 'active', 'Polishing...');
+    v3 = await callAPI(v2, 3);
+    setStage(3, 'done', 'Done', v3);
+    setProgress(100);
+
+    finalTranslation = v3;
+
+    // Show result
+    const panel = document.getElementById('resultPanel');
+    const body = document.getElementById('resultBody');
+    const markerCount = document.getElementById('markerCount');
+
+    const markers = (v3.match(/⟦IMG_\d+⟧/g) || []).length;
+    markerCount.textContent = `${markers} image marker${markers !== 1 ? 's' : ''} preserved`;
+    body.textContent = v3;
+    panel.classList.add('visible');
+    document.getElementById('exportBtn').classList.add('visible');
+
+    btn.innerHTML = 'Translation complete ✓';
+
+  } catch(err) {
+    const activeStage = [1,2,3].find(n => document.getElementById('stage'+n).classList.contains('active')) || 1;
+    setStage(activeStage, 'error', 'Error', err.message);
+    showError('Error: ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = 'Retry';
+  }
+}
+
+function exportDocx() {
+  if (!finalTranslation) return;
+
+  // Build a simple HTML representation that Word can open
+  const lines = finalTranslation.split('\n');
+  let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Garamond, serif; font-size: 11pt; line-height: 1.8; margin: 2.5cm; color: #3a2a1a; }
+        h2 { font-size: 16pt; font-weight: 600; margin: 24pt 0 10pt; }
+        h3 { font-size: 13pt; font-weight: 600; margin: 16pt 0 8pt; }
+        p { margin: 0 0 10pt; }
+        .marker { background: #FDF3D0; color: #854F0B; font-family: monospace; font-size: 9pt; padding: 1pt 4pt; border-radius: 3pt; }
+      </style>
+    </head>
+    <body>`;
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) { html += '<p>&nbsp;</p>'; return; }
+
+    // Detect heading level by position (first line = h2, lines matching known section names = h3)
+    const sectionHeadings = ['Métaphores personnelles', 'Carte puzzle mentale', 'La maison mentale', 'Le verre des émotions', 'Les couches protectrices', 'Points clés', 'Questions à se poser', 'Personal Healing', 'Mental Puzzle', 'Mental House', 'Full Glass', 'Protective', 'Key Takeaway', 'Questions to'];
+    const isH2 = sectionHeadings.some(h => trimmed.startsWith(h)) && trimmed.length < 60 && !trimmed.includes('⟦');
+    const isH3 = trimmed.endsWith('.') === false && trimmed.length < 80 && !trimmed.includes('⟦') && /^[A-ZÀ-Ü]/.test(trimmed) && !trimmed.includes(' de ') && trimmed.split(' ').length < 8;
+
+    // Replace markers with styled spans
+    const withMarkers = trimmed.replace(/⟦(IMG_\d+)⟧/g, '<span class="marker">⟦$1⟧</span>');
+
+    if (isH2) html += `<h2>${withMarkers}</h2>`;
+    else html += `<p>${withMarkers}</p>`;
+  });
+
+  html += '</body></html>';
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'field-manual-french-translation.doc';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function reset() {
+  fileText = '';
+  finalTranslation = '';
+  currentFile = null;
+  document.getElementById('fileInfo').classList.remove('visible');
+  document.getElementById('stages').style.display = 'none';
+  document.getElementById('progressBar').classList.remove('visible');
+  document.getElementById('resultPanel').classList.remove('visible');
+  document.getElementById('exportBtn').classList.remove('visible');
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').innerHTML = 'Translate chapter';
+  document.getElementById('fileInput').value = '';
+  showError('');
+  [1,2,3].forEach(n => setStage(n, '', 'Waiting'));
+}
+</script>
+
+</body>
+</html>

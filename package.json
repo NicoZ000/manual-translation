@@ -1,0 +1,10 @@
+{
+  "name": "field-manual-translator",
+  "version": "1.0.0",
+  "description": "French translation pipeline for A Field Manual to Healing Trauma",
+  "private": true,
+  "dependencies": {
+    "mammoth": "^1.7.1",
+    "docx": "^8.5.0"
+  }
+}
