@@ -84,7 +84,7 @@ Final pass:
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { text, pass, language = 'fr' } = req.body || {};
+  const { text, pass, language = 'fr', quality = 'sonnet' } = req.body || {};
   if (!text || !pass) return res.status(400).json({ error: 'Missing text or pass' });
 
   const key = process.env.ANTHROPIC_API_KEY;
@@ -93,6 +93,12 @@ export default async function handler(req, res) {
   const p = LANG[language];
   if (!p) return res.status(400).json({ error: `Unknown language "${language}". Use: ${Object.keys(LANG).join(', ')}` });
   if (![1, 2, 3].includes(pass)) return res.status(400).json({ error: 'pass must be 1, 2, or 3' });
+
+  const MODELS = {
+    sonnet: 'claude-sonnet-4-6',
+    opus:   'claude-opus-4-7',
+  };
+  const model = MODELS[quality] || MODELS.sonnet;
 
   const userPrompts = {
     1: `Translate into ${p.name}. Preserve all ⟦PXX⟧ and ⟦IMGXX⟧ markers exactly:\n\n${text}`,
@@ -109,7 +115,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model,
         max_tokens: 2000,
         system: buildSystem(p, pass),
         messages: [{ role: 'user', content: userPrompts[pass] }],

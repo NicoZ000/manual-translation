@@ -67,6 +67,10 @@
     .lang-label { font-size: 11px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; }
     select { padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
     select:disabled { opacity: .5; cursor: not-allowed; }
+    .toggle { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+    .tog { flex: 1; padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--text2); transition: .15s; white-space: nowrap; }
+    .tog.on { background: var(--text); color: #fff; }
+    .tog:disabled { opacity: .4; cursor: not-allowed; }
     .btns { display: flex; gap: 10px; flex: 1; }
     .btn { padding: 12px 22px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: .18s; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
@@ -134,6 +138,13 @@
         <option value="it">🇮🇹 Italian</option>
       </select>
     </div>
+    <div class="lang-wrap">
+      <span class="lang-label">Model</span>
+      <div class="toggle">
+        <button class="tog on" id="togSonnet" onclick="setModel('sonnet')">Sonnet 4.6</button>
+        <button class="tog"    id="togOpus"   onclick="setModel('opus')">Opus 4.7</button>
+      </div>
+    </div>
     <div class="btns">
       <button class="btn btn-go"  id="goBtn"  onclick="run()" disabled>Translate</button>
       <button class="btn btn-dl"  id="dlBtn"  onclick="download()">⬇ Download .docx</button>
@@ -146,7 +157,13 @@
 const WORDS_PER_PAGE = 450;
 const MARKER_RE = /^\u27e6(P\d+|IMG\d+)\u27e7\s*(.*)/;
 
-let fileBytes = null, markerLines = [], outputB64 = null;
+let fileBytes = null, markerLines = [], outputB64 = null, quality = 'sonnet';
+
+function setModel(q) {
+  quality = q;
+  document.getElementById('togSonnet').classList.toggle('on', q === 'sonnet');
+  document.getElementById('togOpus').classList.toggle('on', q === 'opus');
+}
 
 // ── Drag & drop ──────────────────────────────────────────────────────────────
 const drop = document.getElementById('drop');
@@ -285,7 +302,7 @@ async function api(text, pass) {
   const res  = await fetch('/api/translate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, pass, language }),
+    body: JSON.stringify({ text, pass, language, quality }),
   });
   const raw = await res.text();
   let data;
@@ -313,10 +330,13 @@ async function run() {
 
   const btn  = $('goBtn');
   const lang = $('lang');
+  const modelLabel = quality === 'opus' ? 'Opus 4.7' : 'Sonnet 4.6';
   const langName = lang.options[lang.selectedIndex].text.replace(/^\S+ /, '');
   btn.disabled = true;
-  btn.innerHTML = `<div class="spin"></div> Translating to ${langName}…`;
+  btn.innerHTML = `<div class="spin"></div> ${modelLabel} → ${langName}…`;
   lang.disabled = true;
+  $('togSonnet').disabled = true;
+  $('togOpus').disabled = true;
 
   const pages = slice(markerLines);
   buildChips(pages.length);
@@ -337,28 +357,10 @@ async function run() {
     setPass(4,'active');
     setProgress('Pass 4 — Restoring formatting & images…', 90);
 
-    // Base64-encode docx safely (chunked to avoid stack overflow on large files)
-    const bytes = new Uint8Array(fileBytes);
-    let b64 = '';
-    const CHUNK = 8192;
-    for (let i = 0; i < bytes.length; i += CHUNK)
-      b64 += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-    const docxBase64 = btoa(b64);
-
-    const translatedLines = v3.join('\n').split('\n');
-    const rRes = await fetch('/api/restore', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ docxBase64, translatedLines }),
-    });
-    const rRaw = await rRes.text();
-    let rData;
-    try { rData = JSON.parse(rRaw); } catch { throw new Error(`Restore error: ${rRaw.slice(0, 120)}`); }
-    if (!rRes.ok) throw new Error(rData.error || `Restore HTTP ${rRes.status}`);
-
-    outputB64 = rData.docxBase64;
+    const replaced = await restoreInBrowser(v3.join('\n').split('\n'));
+    outputB64 = replaced.b64;
     setPass(4,'done');
-    setProgress(`Complete — ${rData.replaced} paragraphs restored`, 100);
+    setProgress(`Complete — ${replaced.count} paragraphs restored`, 100);
     $('dlBtn').classList.add('on');
     btn.textContent = 'Translation complete ✓';
 
@@ -368,7 +370,110 @@ async function run() {
     btn.textContent = 'Retry';
   } finally {
     lang.disabled = false;
+    $('togSonnet').disabled = false;
+    $('togOpus').disabled = false;
   }
+}
+
+// ── Client-side docx restore (avoids Vercel 4.5MB payload limit) ─────────────
+async function restoreInBrowser(translatedLines) {
+  // Parse ⟦PXX⟧ lines → { 'P001': 'french text', ... }
+  const translations = {};
+  let key = null, parts = [];
+  for (const line of translatedLines) {
+    const m = line.match(/^\u27e6(P\d+|IMG\d+)\u27e7\s*(.*)/);
+    if (m) {
+      if (key) translations[key] = parts.join(' ').trim();
+      key = m[1]; parts = m[2].trim() ? [m[2].trim()] : [];
+    } else if (key && line.trim()) parts.push(line.trim());
+  }
+  if (key) translations[key] = parts.join(' ').trim();
+
+  // Load original docx zip (fileBytes is the ArrayBuffer kept in memory)
+  const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+  const zip = await JSZip.loadAsync(fileBytes);
+  let xml = await zip.file('word/document.xml').async('string');
+
+  // Build skip zones (sdt, tbl, tc, tr, hyperlink) with binary-search lookup
+  function buildZones(src, openRe, closeRe) {
+    const out = [], evs = [];
+    let m;
+    const ro = new RegExp(openRe,  'g');
+    const rc = new RegExp(closeRe, 'g');
+    while ((m = ro.exec(src)) !== null) evs.push({ p: m.index, t:  1 });
+    while ((m = rc.exec(src)) !== null) evs.push({ p: m.index, t: -1, e: m.index + m[0].length });
+    evs.sort((a, b) => a.p - b.p);
+    let depth = 0, start = 0;
+    for (const ev of evs) {
+      if (ev.t === 1) { if (depth++ === 0) start = ev.p; }
+      else if (--depth === 0) out.push([start, ev.e]);
+    }
+    return out;
+  }
+
+  const skipZones = [
+    ...buildZones(xml, '<w:sdt[\\s>]',       '</w:sdt>'),
+    ...buildZones(xml, '<w:tbl[\\s>]',       '</w:tbl>'),
+    ...buildZones(xml, '<w:tc[\\s>]',        '</w:tc>'),
+    ...buildZones(xml, '<w:tr[\\s>]',        '</w:tr>'),
+    ...buildZones(xml, '<w:hyperlink[\\s>]', '</w:hyperlink>'),
+  ].sort((a, b) => a[0] - b[0]);
+
+  function inSkip(pos) {
+    let lo = 0, hi = skipZones.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const [s, e] = skipZones[mid];
+      if (pos >= s && pos < e) return true;
+      pos < s ? (hi = mid - 1) : (lo = mid + 1);
+    }
+    return false;
+  }
+
+  function escXml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Collect replacements, then apply back-to-front
+  const replacements = [];
+  let pCounter = 0;
+  const paraRe = /<w:p[ >][\s\S]*?<\/w:p>/g;
+  let match;
+
+  while ((match = paraRe.exec(xml)) !== null) {
+    const block = match[0];
+    if (inSkip(match.index) || /wp:inline|wp:anchor/.test(block)) continue;
+    const text = [...block.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m => m[1]).join('').trim();
+    if (!text) continue;
+    pCounter++;
+    const mid = `P${String(pCounter).padStart(3, '0')}`;
+    const translated = translations[mid];
+    if (!translated) continue;
+    replacements.push({ start: match.index, end: match.index + block.length, block, translated });
+  }
+
+  for (const { start, end, block, translated } of replacements.reverse()) {
+    const runs = [...block.matchAll(/<w:t([^>]*)>([\s\S]*?)<\/w:t>/g)];
+    if (!runs.length) continue;
+    let newBlock = block;
+    for (let i = runs.length - 1; i >= 0; i--) {
+      const run = runs[i];
+      const attrs = run[1].includes('xml:space') ? run[1] : ` xml:space="preserve"${run[1]}`;
+      const content = i === 0 ? escXml(translated) : '';
+      newBlock = newBlock.slice(0, run.index) + `<w:t${attrs}>${content}</w:t>` + newBlock.slice(run.index + run[0].length);
+    }
+    xml = xml.slice(0, start) + newBlock + xml.slice(end);
+  }
+
+  // Write modified XML back into zip, output as Uint8Array → base64
+  zip.file('word/document.xml', xml);
+  const outBytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+  let b64 = '';
+  const CHUNK = 8192;
+  for (let i = 0; i < outBytes.length; i += CHUNK)
+    b64 += String.fromCharCode(...outBytes.subarray(i, i + CHUNK));
+
+  return { b64: btoa(b64), count: replacements.length };
 }
 
 // ── Download ──────────────────────────────────────────────────────────────────
@@ -379,7 +484,7 @@ function download() {
   const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `field-manual-${langCode}.docx`;
+  a.download = `field-manual-${langCode}-${quality}.docx`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -394,6 +499,8 @@ function reset() {
   $('goBtn').textContent = 'Translate';
   $('fileInput').value = '';
   $('lang').disabled = false;
+  $('togSonnet').disabled = false;
+  $('togOpus').disabled = false;
   $('chips').innerHTML = '';
   err('');
   [1,2,3,4].forEach(n => setPass(n,''));
