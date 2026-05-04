@@ -293,12 +293,17 @@ async function buildMarkers() {
     const block = match[0];
     if (inSkip(match.index)) continue;
 
-    if (/wp:inline|wp:anchor/.test(block)) {
+    const hasImage = /wp:inline|wp:anchor/.test(block);
+    const text = [...block.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m => m[1]).join('').trim();
+
+    if (hasImage) {
+      // Always mark the image
       markerLines.push(`\u27e6IMG${String(++iC).padStart(3,'0')}\u27e7`);
+      // If paragraph also has text, mark it for translation too
+      if (text) markerLines.push(`\u27e6P${String(++pC).padStart(3,'0')}\u27e7 ${text}`);
       continue;
     }
 
-    const text = [...block.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m => m[1]).join('').trim();
     if (!text) continue;
     markerLines.push(`\u27e6P${String(++pC).padStart(3,'0')}\u27e7 ${text}`);
   }
@@ -483,8 +488,22 @@ async function restoreInBrowser(translatedLines) {
 
   while ((match = paraRe.exec(xml)) !== null) {
     const block = match[0];
-    if (inSkip(match.index) || /wp:inline|wp:anchor/.test(block)) continue;
+    if (inSkip(match.index)) continue;
+
+    const hasImage = /wp:inline|wp:anchor/.test(block);
     const text = [...block.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m => m[1]).join('').trim();
+
+    if (hasImage) {
+      // Mirror buildMarkers: image-only → skip; image+text → increment pCounter
+      if (text) {
+        pCounter++;
+        const mid = `P${String(pCounter).padStart(3, '0')}`;
+        const translated = translations[mid];
+        if (translated) replacements.push({ start: match.index, end: match.index + block.length, block, translated });
+      }
+      continue;
+    }
+
     if (!text) continue;
     pCounter++;
     const mid = `P${String(pCounter).padStart(3, '0')}`;

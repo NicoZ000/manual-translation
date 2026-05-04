@@ -46,6 +46,9 @@ const AUTHOR_VOICE = `THE AUTHOR: highly literate, intellectually rigorous, writ
 // Shared marker rule — identical across all passes
 const MARKER_RULE = `MARKERS: ⟦P001⟧ and ⟦IMG001⟧ style codes are structural — never translate, move, merge, or remove them. Return text only, no preamble.`;
 
+// Em dash rule — applied in all three passes
+const NO_EM_DASH = `EM DASH PROHIBITION: Never use the em dash (—) character anywhere in the output. Where an em dash would appear, rephrase the sentence entirely so it is not needed. Use subordinate clauses, commas, semicolons, colons, or restructure the sentence. Do not substitute an en dash (–) either. This is absolute.`;
+
 function buildSystem(p, pass) {
   if (pass === 1) return `You are a distinguished ${p.name} literary translator for memoir and personal essay. Your output reads as original ${p.name} prose — never as a translation.
 
@@ -58,6 +61,7 @@ MANDATE:
 — Structural metaphors (house, glass, puzzle map, protective layers) — keep concrete and consistent.
 — Address the reader as "${p.form}" — intimate, never formal.
 — Pitfalls to avoid: ${p.pitfalls}.
+— ${NO_EM_DASH}
 — ${MARKER_RULE}`;
 
   if (pass === 2) return `You are a senior literary editor at ${p.editor}, twenty years editing memoir and personal essay.
@@ -68,6 +72,7 @@ Refine this ${p.name} translation into original literary prose:
 — ${p.rhythm}
 — Register: ${p.register}. Literary memoir — not therapeutic, not self-help.
 — Confirm "${p.form}" throughout. Correct any slip.
+— ${NO_EM_DASH}
 — ${MARKER_RULE}`;
 
   // pass === 3
@@ -78,6 +83,7 @@ Final pass:
 — Trust your ear. The prose should feel at home beside ${p.bench}.
 — Register: ${p.register}. Do not simplify — this is for readers who read seriously.
 — Confirm "${p.form}" throughout. Correct any slip.
+— ${NO_EM_DASH}
 — ${MARKER_RULE}`;
 }
 
@@ -130,7 +136,10 @@ export default async function handler(req, res) {
     if (!response.ok) return res.status(response.status).json({ error: data.error?.message || `Anthropic ${response.status}` });
     if (!data.content?.[0]?.text) return res.status(500).json({ error: 'Unexpected response structure' });
 
-    return res.status(200).json({ result: data.content[0].text });
+    // Safety net: strip any em dashes that slipped through despite the instruction
+    const result = data.content[0].text.replace(/—/g, ',').replace(/–/g, ',');
+
+    return res.status(200).json({ result });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
