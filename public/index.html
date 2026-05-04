@@ -3,399 +3,399 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Field Manual — French Translation</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <title>Field Manual — Literary Translator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --cream:#FBF5EA;--surface:#FFF9F1;--surface2:#EEF0DE;--border:#D8CCB8;
-      --sage:#9BA85A;--moss:#7C8450;--terracotta:#D98B3A;--amber:#E9B85C;
-      --text:#5D472F;--text2:#7B6750;--text3:#9B8A76;--error:#C97A63;--success:#8FAF6B;
+      --cream:#FBF5EA; --surface:#FFF9F1; --surface2:#EEF0DE; --border:#D8CCB8;
+      --sage:#9BA85A; --moss:#7C8450; --terra:#D98B3A; --amber:#E9B85C;
+      --text:#5D472F; --text2:#7B6750; --text3:#9B8A76;
+      --err:#C97A63; --ok:#8FAF6B;
     }
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:var(--cream);font-family:'DM Sans',sans-serif;color:var(--text);min-height:100vh;}
-    header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 40px;display:flex;align-items:center;justify-content:space-between;}
-    .logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;}
-    .logo span{color:var(--terracotta);}
-    .subtitle{font-size:11px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;}
-    main{max-width:820px;margin:0 auto;padding:36px 24px 80px;}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--cream); font-family: 'DM Sans', sans-serif; color: var(--text); min-height: 100vh; }
 
-    .upload-zone{border:2px dashed var(--border);border-radius:16px;padding:48px 32px;text-align:center;background:var(--surface);cursor:pointer;transition:.2s;position:relative;}
-    .upload-zone:hover,.upload-zone.drag{border-color:var(--sage);background:var(--surface2);}
-    .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-    .upload-icon{width:48px;height:48px;background:var(--surface2);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;}
-    .upload-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;margin-bottom:6px;}
-    .upload-hint{font-size:13px;color:var(--text3);}
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; }
+    .logo span { color: var(--terra); }
+    .sub { font-size: 11px; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; }
 
-    .file-info{display:none;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 18px;margin-top:14px;align-items:center;gap:12px;}
-    .file-info.visible{display:flex;}
-    .file-name{font-size:14px;font-weight:500;flex:1;}
-    .word-count{font-size:12px;padding:3px 10px;border-radius:20px;font-weight:500;flex-shrink:0;}
-    .wc-ok{background:#EAF3DE;color:#3B6D11;}
-    .wc-warn{background:#FAEEDA;color:#854F0B;}
-    .wc-over{background:#FCEAE7;color:#993C1D;}
+    main { max-width: 820px; margin: 0 auto; padding: 36px 24px 80px; }
 
-    .progress-wrap{margin-top:28px;display:none;}
-    .progress-wrap.visible{display:block;}
+    /* Upload */
+    .drop { border: 2px dashed var(--border); border-radius: 16px; padding: 48px 32px; text-align: center; background: var(--surface); cursor: pointer; transition: .2s; position: relative; }
+    .drop:hover, .drop.drag { border-color: var(--sage); background: var(--surface2); }
+    .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .drop-icon { width: 48px; height: 48px; background: var(--surface2); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 22px; }
+    .drop-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 500; margin-bottom: 6px; }
+    .drop-hint { font-size: 13px; color: var(--text3); }
 
-    .passes{display:flex;gap:10px;margin-bottom:18px;}
-    .pass-badge{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);}
-    .pass-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:2px;}
-    .pass-desc{font-size:11px;color:var(--text3);}
-    .pass-badge.active{border-color:var(--amber);background:#FAEEDA;}
-    .pass-badge.active .pass-title{color:#854F0B;}
-    .pass-badge.done{border-color:var(--success);background:#EAF3DE;}
-    .pass-badge.done .pass-title{color:#3B6D11;}
+    /* File info */
+    .file-bar { display: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 13px 18px; margin-top: 14px; align-items: center; gap: 12px; }
+    .file-bar.on { display: flex; }
+    .file-name { font-size: 14px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wc-badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 500; flex-shrink: 0; }
+    .wc-ok   { background: #EAF3DE; color: #3B6D11; }
+    .wc-warn { background: #FAEEDA; color: #854F0B; }
+    .wc-over { background: #FCEAE7; color: #993C1D; }
 
-    .progress-header{display:flex;justify-content:space-between;margin-bottom:7px;}
-    .progress-label{font-size:13px;font-weight:500;}
-    .progress-pct{font-size:13px;color:var(--text3);}
-    .progress-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:16px;}
-    .progress-fill{height:100%;background:var(--terracotta);border-radius:3px;transition:width .35s ease;width:0%;}
-    .page-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;}
-    .page-chip{width:42px;height:26px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);font-size:10px;color:var(--text3);display:flex;align-items:center;justify-content:center;transition:.15s;}
-    .page-chip.running{background:#FAEEDA;border-color:var(--amber);color:#854F0B;}
-    .page-chip.done{background:#EAF3DE;border-color:var(--success);color:#3B6D11;}
-    .page-chip.error{background:#FCEAE7;border-color:var(--error);color:#993C1D;}
+    /* Progress */
+    .prog-wrap { margin-top: 28px; display: none; }
+    .prog-wrap.on { display: block; }
+    .passes { display: flex; gap: 10px; margin-bottom: 18px; }
+    .pass { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
+    .pass-t { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 2px; }
+    .pass-d { font-size: 11px; color: var(--text3); }
+    .pass.active { border-color: var(--amber); background: #FAEEDA; }
+    .pass.active .pass-t { color: #854F0B; }
+    .pass.done { border-color: var(--ok); background: #EAF3DE; }
+    .pass.done .pass-t { color: #3B6D11; }
+    .prog-hdr { display: flex; justify-content: space-between; margin-bottom: 7px; }
+    .prog-lbl { font-size: 13px; font-weight: 500; }
+    .prog-pct { font-size: 13px; color: var(--text3); }
+    .prog-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+    .prog-fill { height: 100%; background: var(--terra); border-radius: 3px; transition: width .35s ease; width: 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip { width: 42px; height: 26px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); font-size: 10px; color: var(--text3); display: flex; align-items: center; justify-content: center; transition: .15s; }
+    .chip.run  { background: #FAEEDA; border-color: var(--amber); color: #854F0B; }
+    .chip.done { background: #EAF3DE; border-color: var(--ok);    color: #3B6D11; }
+    .chip.err  { background: #FCEAE7; border-color: var(--err);   color: #993C1D; }
 
-    .actions{display:flex;gap:10px;margin-top:24px;}
-    .btn{padding:12px 26px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:.18s;display:flex;align-items:center;gap:8px;}
-    .btn:disabled{opacity:.4;cursor:not-allowed;}
-    .btn-primary{background:var(--terracotta);color:white;flex:1;justify-content:center;}
-    .btn-primary:hover:not(:disabled){background:#c4792e;}
-    .btn-export{background:var(--sage);color:white;display:none;}
-    .btn-export.visible{display:flex;}
-    .btn-export:hover{background:var(--moss);}
-    .btn-reset{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
-    .btn-reset:hover{background:var(--border);}
+    /* Actions */
+    .actions { display: flex; gap: 10px; margin-top: 24px; align-items: flex-end; }
+    .lang-wrap { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    .lang-label { font-size: 11px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; }
+    select { padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
+    select:disabled { opacity: .5; cursor: not-allowed; }
+    .btns { display: flex; gap: 10px; flex: 1; }
+    .btn { padding: 12px 22px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: .18s; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-go   { background: var(--terra); color: #fff; flex: 1; justify-content: center; }
+    .btn-go:hover:not(:disabled) { background: #c4792e; }
+    .btn-dl   { background: var(--sage); color: #fff; display: none; }
+    .btn-dl.on { display: flex; }
+    .btn-dl:hover { background: var(--moss); }
+    .btn-rst  { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+    .btn-rst:hover { background: var(--border); }
 
-    .error-msg{display:none;background:#FCEAE7;border:1px solid #E8C4B8;border-radius:10px;padding:12px 16px;font-size:13px;color:#993C1D;margin-top:14px;}
-    .error-msg.visible{display:block;}
+    /* Error */
+    .err-msg { display: none; background: #FCEAE7; border: 1px solid #E8C4B8; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #993C1D; margin-top: 14px; }
+    .err-msg.on { display: block; }
 
-    @keyframes spin{to{transform:rotate(360deg);}}
-    .spinner{width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;}
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
   </style>
 </head>
 <body>
+
 <header>
   <div class="logo">Field Manual <span>·</span> Traducteur</div>
-  <div class="subtitle">French Translation Pipeline</div>
+  <div class="sub">Literary Translation Pipeline</div>
 </header>
+
 <main>
-  <div class="upload-zone" id="uploadZone">
-    <input type="file" accept=".docx,.txt" id="fileInput" onchange="handleFile(this.files[0])" />
-    <div class="upload-icon">📄</div>
-    <div class="upload-title">Drop your .docx chapter here</div>
-    <div class="upload-hint">Max 50,000 words · Formatting, styles & images preserved · FR · DE · NL · IT</div>
+  <div class="drop" id="drop">
+    <input type="file" accept=".docx" id="fileInput" onchange="onFile(this.files[0])" />
+    <div class="drop-icon">📄</div>
+    <div class="drop-title">Drop your .docx chapter here</div>
+    <div class="drop-hint">Max 50,000 words · Formatting, styles &amp; images preserved · FR · DE · NL · IT</div>
   </div>
 
-  <div class="file-info" id="fileInfo">
-    <div style="font-size:18px;flex-shrink:0;">📄</div>
-    <div class="file-name" id="fileName">—</div>
-    <div class="word-count" id="wordCount">—</div>
+  <div class="file-bar" id="fileBar">
+    <span style="font-size:18px;flex-shrink:0">📄</span>
+    <span class="file-name" id="fileName">—</span>
+    <span class="wc-badge" id="wcBadge">—</span>
   </div>
 
-  <div class="error-msg" id="errorMsg"></div>
+  <div class="err-msg" id="errMsg"></div>
 
-  <div class="progress-wrap" id="progressWrap">
+  <div class="prog-wrap" id="progWrap">
     <div class="passes">
-      <div class="pass-badge" id="pass1"><div class="pass-title">Pass 1</div><div class="pass-desc">Translation</div></div>
-      <div class="pass-badge" id="pass2"><div class="pass-title">Pass 2</div><div class="pass-desc">Copy editor</div></div>
-      <div class="pass-badge" id="pass3"><div class="pass-title">Pass 3</div><div class="pass-desc">Reader polish</div></div>
-      <div class="pass-badge" id="pass4"><div class="pass-title">Pass 4</div><div class="pass-desc">Restore docx</div></div>
+      <div class="pass" id="p1"><div class="pass-t">Pass 1</div><div class="pass-d">Translation</div></div>
+      <div class="pass" id="p2"><div class="pass-t">Pass 2</div><div class="pass-d">Copy editor</div></div>
+      <div class="pass" id="p3"><div class="pass-t">Pass 3</div><div class="pass-d">Reader polish</div></div>
+      <div class="pass" id="p4"><div class="pass-t">Pass 4</div><div class="pass-d">Restore docx</div></div>
     </div>
-    <div class="progress-header">
-      <div class="progress-label" id="progressLabel">Starting...</div>
-      <div class="progress-pct" id="progressPct">0%</div>
+    <div class="prog-hdr">
+      <span class="prog-lbl" id="progLbl">Starting…</span>
+      <span class="prog-pct" id="progPct">0%</span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="page-grid" id="pageGrid"></div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="chips" id="chips"></div>
   </div>
 
   <div class="actions">
-    <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-      <label style="font-size:11px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;">Target language</label>
-      <select id="langSelect" style="padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;">
+    <div class="lang-wrap">
+      <span class="lang-label">Language</span>
+      <select id="lang">
         <option value="fr">🇫🇷 French</option>
         <option value="de">🇩🇪 German</option>
         <option value="nl">🇳🇱 Dutch</option>
         <option value="it">🇮🇹 Italian</option>
       </select>
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
-      <div style="height:17px;"></div>
-      <div style="display:flex;gap:10px;">
-        <button class="btn btn-primary" id="submitBtn" onclick="runPipeline()" disabled>Translate chapter</button>
-        <button class="btn btn-export" id="exportBtn" onclick="downloadDocx()">⬇ Download .docx</button>
-        <button class="btn btn-reset" onclick="reset()">Reset</button>
-      </div>
+    <div class="btns">
+      <button class="btn btn-go"  id="goBtn"  onclick="run()" disabled>Translate</button>
+      <button class="btn btn-dl"  id="dlBtn"  onclick="download()">⬇ Download .docx</button>
+      <button class="btn btn-rst" onclick="reset()">Reset</button>
     </div>
   </div>
 </main>
 
 <script>
-// ── Config ──
 const WORDS_PER_PAGE = 450;
+const MARKER_RE = /^\u27e6(P\d+|IMG\d+)\u27e7\s*(.*)/;
 
-// ── State ──
-let fileBytes   = null;   // original docx as ArrayBuffer
-let markerLines = [];     // pre-processed lines with ⟦PXX⟧ markers
-let markerMap   = {};     // marker_id -> { type, original }
-let outputDocxB64 = null; // final restored docx
+let fileBytes = null, markerLines = [], outputB64 = null;
 
-// ── Drag & drop ──
-const zone = document.getElementById('uploadZone');
-zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
-zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+// ── Drag & drop ──────────────────────────────────────────────────────────────
+const drop = document.getElementById('drop');
+drop.addEventListener('dragover',  e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', ()  => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag'); e.dataTransfer.files[0] && onFile(e.dataTransfer.files[0]); });
 
-async function handleFile(file) {
-  showError('');
-  if (!file.name.endsWith('.docx')) {
-    showError('Please upload a .docx file.'); return;
-  }
+// ── File handling ─────────────────────────────────────────────────────────────
+async function onFile(file) {
+  err('');
+  if (!file.name.endsWith('.docx')) { err('Please upload a .docx file.'); return; }
   fileBytes = await file.arrayBuffer();
+  markerLines = [];
+  outputB64 = null;
 
-  // Extract text for word count display
-  const result = await mammoth.extractRawText({ arrayBuffer: fileBytes.slice(0) });
-  const words = result.value.trim().split(/\s+/).filter(Boolean).length;
-  const pages = Math.ceil(words / WORDS_PER_PAGE);
+  await buildMarkers();  // sets markerLines, counts words from XML
 
+  const wc = markerLines.reduce((n, l) => n + l.replace(/\u27e6[^\]]+\u27e7/, '').split(/\s+/).filter(Boolean).length, 0);
+  const pages = Math.ceil(wc / WORDS_PER_PAGE);
+
+  const badge = document.getElementById('wcBadge');
   document.getElementById('fileName').textContent = file.name;
-  const wc = document.getElementById('wordCount');
-  document.getElementById('fileInfo').classList.add('visible');
+  document.getElementById('fileBar').classList.add('on');
 
-  if (words > 50000) {
-    wc.textContent = `${words.toLocaleString()} words — over limit`;
-    wc.className = 'word-count wc-over';
-    document.getElementById('submitBtn').disabled = true;
-    showError(`${words.toLocaleString()} words exceeds the 50,000 word limit.`);
+  if (wc > 50000) {
+    badge.textContent = `${wc.toLocaleString()} words — over limit`;
+    badge.className = 'wc-badge wc-over';
+    document.getElementById('goBtn').disabled = true;
+    err(`${wc.toLocaleString()} words exceeds the 50,000 word limit. Split the file and upload one section at a time.`);
   } else {
-    wc.textContent = `${words.toLocaleString()} words · ~${pages} pages`;
-    wc.className = `word-count ${words > 40000 ? 'wc-warn' : 'wc-ok'}`;
-    document.getElementById('submitBtn').disabled = false;
+    badge.textContent = `${wc.toLocaleString()} words · ~${pages} pages`;
+    badge.className = `wc-badge ${wc > 40000 ? 'wc-warn' : 'wc-ok'}`;
+    document.getElementById('goBtn').disabled = false;
   }
-
-  // ── Pre-process: extract paragraphs with markers from docx XML ──
-  await buildMarkers();
 }
 
+// ── Marker extraction (regex on raw XML — no DOMParser, no recursion) ─────────
 async function buildMarkers() {
-  // Parse the docx XML directly in the browser
   const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
   const zip = await JSZip.loadAsync(fileBytes);
-  const xmlText = await zip.file('word/document.xml').async('string');
+  const xml = await zip.file('word/document.xml').async('string');
 
-  // Namespaces we care about
-  const W  = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
-  const WP = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing';
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlText, 'text/xml');
-
-  // Build skip zones: find all sdt, tbl, tc, tr, hyperlink elements
-  const SKIP_TAGS = ['w:sdt','w:tbl','w:tc','w:tr','w:hyperlink'];
-  const skipEls = new Set();
-  for (const tag of SKIP_TAGS) {
-    for (const el of doc.querySelectorAll(tag.replace(':','\\\:'))) {
-      // Mark all w:p descendants as skipped
-      for (const p of el.querySelectorAll('w\\:p, p')) skipEls.add(p);
+  // Build skip zones for sdt / tbl / tc / tr / hyperlink
+  function zones(src, openRe, closeRe) {
+    const out = [], evs = [];
+    let m;
+    new RegExp(openRe,  'g').exec; // warm up (no-op)
+    const ro = new RegExp(openRe,  'g');
+    const rc = new RegExp(closeRe, 'g');
+    while ((m = ro.exec(src)) !== null) evs.push({ p: m.index, t: 1 });
+    while ((m = rc.exec(src)) !== null) evs.push({ p: m.index, t: -1, e: m.index + m[0].length });
+    evs.sort((a, b) => a.p - b.p);
+    let depth = 0, start = 0;
+    for (const ev of evs) {
+      if (ev.t === 1) { if (depth++ === 0) start = ev.p; }
+      else if (--depth === 0) out.push([start, ev.e]);
     }
+    return out;
   }
 
-  const allParas = doc.querySelectorAll('w\\:p, p');
+  const skip = [
+    ...zones(xml, '<w:sdt[\\s>]',       '</w:sdt>'),
+    ...zones(xml, '<w:tbl[\\s>]',       '</w:tbl>'),
+    ...zones(xml, '<w:tc[\\s>]',        '</w:tc>'),
+    ...zones(xml, '<w:tr[\\s>]',        '</w:tr>'),
+    ...zones(xml, '<w:hyperlink[\\s>]', '</w:hyperlink>'),
+  ].sort((a, b) => a[0] - b[0]);
+
+  function inSkip(pos) {
+    let lo = 0, hi = skip.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const [s, e] = skip[mid];
+      if (pos >= s && pos < e) return true;
+      pos < s ? (hi = mid - 1) : (lo = mid + 1);
+    }
+    return false;
+  }
+
   markerLines = [];
-  markerMap = {};
-  let pCounter = 0, imgCounter = 0;
+  let pC = 0, iC = 0;
+  const paraRe = /<w:p[ >][\s\S]*?<\/w:p>/g;
+  let match;
 
-  for (const para of allParas) {
-    if (skipEls.has(para)) continue;
+  while ((match = paraRe.exec(xml)) !== null) {
+    const block = match[0];
+    if (inSkip(match.index)) continue;
 
-    // Check for image
-    const hasImage = para.querySelector('wp\\:inline, wp\\:anchor, [localName="inline"], [localName="anchor"]') !== null ||
-                     xmlText.includes('wp:inline') && para.innerHTML && para.innerHTML.includes('wp:inline');
-
-    // Safer image detection: check the raw XML for this paragraph
-    // We'll use text-based check on serialised para
-    const serialised = new XMLSerializer().serializeToString(para);
-    const isImage = serialised.includes('wp:inline') || serialised.includes('wp:anchor');
-
-    if (isImage) {
-      imgCounter++;
-      const mid = `IMG${String(imgCounter).padStart(3,'0')}`;
-      markerMap[mid] = { type: 'image' };
-      markerLines.push(`⟦${mid}⟧`);
+    if (/wp:inline|wp:anchor/.test(block)) {
+      markerLines.push(`\u27e6IMG${String(++iC).padStart(3,'0')}\u27e7`);
       continue;
     }
 
-    // Extract visible text
-    const tNodes = para.querySelectorAll('w\\:t, t');
-    const visible = [...tNodes].map(t => t.textContent).join('').trim();
-    if (!visible) continue;
-
-    pCounter++;
-    const mid = `P${String(pCounter).padStart(3,'0')}`;
-    markerMap[mid] = { type: 'paragraph', original: visible };
-    markerLines.push(`⟦${mid}⟧ ${visible}`);
+    const text = [...block.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m => m[1]).join('').trim();
+    if (!text) continue;
+    markerLines.push(`\u27e6P${String(++pC).padStart(3,'0')}\u27e7 ${text}`);
   }
-
-  console.log(`Markers built: ${pCounter} paragraphs, ${imgCounter} images`);
 }
 
-// ── Slice marked lines into pages ──
-function sliceMarkers(lines) {
+// ── Page slicing ──────────────────────────────────────────────────────────────
+function slice(lines) {
   const pages = [];
-  let current = [], wc = 0;
-  for (const line of lines) {
-    const words = line.replace(/⟦[^\]]+⟧/, '').split(/\s+/).filter(Boolean).length;
-    if (wc + words > WORDS_PER_PAGE && current.length > 0) {
-      pages.push(current.join('\n'));
-      current = []; wc = 0;
-    }
-    current.push(line);
-    wc += words;
+  let cur = [], wc = 0;
+  for (const l of lines) {
+    const w = l.replace(/\u27e6[^\]]+\u27e7/, '').split(/\s+/).filter(Boolean).length;
+    if (wc + w > WORDS_PER_PAGE && cur.length) { pages.push(cur.join('\n')); cur = []; wc = 0; }
+    cur.push(l); wc += w;
   }
-  if (current.length) pages.push(current.join('\n'));
+  if (cur.length) pages.push(cur.join('\n'));
   return pages;
 }
 
-// ── UI helpers ──
-function buildPageGrid(n) {
-  const g = document.getElementById('pageGrid');
-  g.innerHTML = '';
+// ── UI helpers ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function setPass(n, cls) { $(`p${n}`).className = `pass ${cls}`; }
+function setChip(i, cls) { const c = $(`c${i}`); if (c) c.className = `chip ${cls}`; }
+function setProgress(lbl, pct) {
+  $('progLbl').textContent = lbl;
+  $('progPct').textContent = `${Math.round(pct)}%`;
+  $('progFill').style.width = pct + '%';
+}
+function err(msg) { const e = $('errMsg'); e.textContent = msg; e.classList.toggle('on', !!msg); }
+
+function buildChips(n) {
+  const g = $('chips'); g.innerHTML = '';
   for (let i = 0; i < n; i++) {
     const c = document.createElement('div');
-    c.className = 'page-chip'; c.id = `chip-${i}`; c.textContent = `P${i+1}`;
+    c.className = 'chip'; c.id = `c${i}`; c.textContent = `P${i+1}`;
     g.appendChild(c);
   }
 }
-function setChip(i, s) { const c = document.getElementById(`chip-${i}`); if(c) c.className=`page-chip ${s}`; }
-function setPass(n, s) { document.getElementById(`pass${n}`).className=`pass-badge ${s}`; }
-function setProgress(label, pct) {
-  document.getElementById('progressLabel').textContent = label;
-  document.getElementById('progressPct').textContent = `${Math.round(pct)}%`;
-  document.getElementById('progressFill').style.width = pct + '%';
-}
-function showError(msg) { const e=document.getElementById('errorMsg'); e.textContent=msg; e.classList.toggle('visible',!!msg); }
 
-async function callAPI(text, pass) {
-  const language = document.getElementById('langSelect').value;
-  const res = await fetch('/api/translate', {
+// ── API call ──────────────────────────────────────────────────────────────────
+async function api(text, pass) {
+  const language = $('lang').value;
+  const res  = await fetch('/api/translate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, pass, language })
+    body: JSON.stringify({ text, pass, language }),
   });
   const raw = await res.text();
   let data;
-  try { data = JSON.parse(raw); } catch { throw new Error(`Server error (${res.status}): ${raw.slice(0,150)}`); }
+  try { data = JSON.parse(raw); } catch { throw new Error(`Server error ${res.status}: ${raw.slice(0, 120)}`); }
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  if (!data.result) throw new Error(data.error || 'No result');
+  if (!data.result) throw new Error('Empty result from API');
   return data.result;
 }
 
-async function translatePages(pageList, pass, label, pStart, pEnd) {
-  const results = [];
-  for (let i = 0; i < pageList.length; i++) {
-    setChip(i, 'running');
-    setProgress(`${label} — page ${i+1} of ${pageList.length}`, pStart + (i/pageList.length)*(pEnd-pStart));
-    try {
-      results.push(await callAPI(pageList[i], pass));
-      setChip(i, 'done');
-    } catch(err) {
-      setChip(i, 'error');
-      throw new Error(`Pass ${pass}, page ${i+1}: ${err.message}`);
-    }
+async function runPass(pages, passNum, label, p0, p1) {
+  const out = [];
+  for (let i = 0; i < pages.length; i++) {
+    setChip(i, 'run');
+    setProgress(`${label} — page ${i+1} of ${pages.length}`, p0 + (i / pages.length) * (p1 - p0));
+    try   { out.push(await api(pages[i], passNum)); setChip(i, 'done'); }
+    catch (e) { setChip(i, 'err'); throw new Error(`Pass ${passNum} p.${i+1}: ${e.message}`); }
   }
-  return results;
+  return out;
 }
 
-async function runPipeline() {
+// ── Main pipeline ─────────────────────────────────────────────────────────────
+async function run() {
   if (!fileBytes || !markerLines.length) return;
-  showError(''); outputDocxB64 = null;
+  err(''); outputB64 = null;
 
-  const btn = document.getElementById('submitBtn');
-  const langSelect = document.getElementById('langSelect');
-  const langName = langSelect.options[langSelect.selectedIndex].text.replace(/^.+ /, '');
-  btn.disabled = true; btn.innerHTML = `<div class="spinner"></div> Translating to ${langName}...`;
-  langSelect.disabled = true;
+  const btn  = $('goBtn');
+  const lang = $('lang');
+  const langName = lang.options[lang.selectedIndex].text.replace(/^\S+ /, '');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spin"></div> Translating to ${langName}…`;
+  lang.disabled = true;
 
-  const pages = sliceMarkers(markerLines);
-  buildPageGrid(pages.length);
-  document.getElementById('progressWrap').classList.add('visible');
-  document.getElementById('exportBtn').classList.remove('visible');
-  setProgress('Starting...', 2);
+  const pages = slice(markerLines);
+  buildChips(pages.length);
+  $('progWrap').classList.add('on');
+  $('dlBtn').classList.remove('on');
+  setProgress('Starting…', 2);
 
   try {
-    // Pass 1 — Translation
     setPass(1,'active'); setPass(2,''); setPass(3,''); setPass(4,'');
-    const v1 = await translatePages(pages, 1, 'Pass 1 — Translating', 2, 35);
-    setPass(1,'done');
+    const v1 = await runPass(pages, 1, 'Pass 1 — Translating', 2, 35); setPass(1,'done');
 
-    // Pass 2 — Copy editor
     setPass(2,'active');
-    const v2 = await translatePages(v1, 2, 'Pass 2 — Copy editing', 35, 65);
-    setPass(2,'done');
+    const v2 = await runPass(v1, 2, 'Pass 2 — Copy editing', 35, 65); setPass(2,'done');
 
-    // Pass 3 — Reader polish
     setPass(3,'active');
-    const v3 = await translatePages(v2, 3, 'Pass 3 — Polishing', 65, 88);
-    setPass(3,'done');
+    const v3 = await runPass(v2, 3, 'Pass 3 — Polishing', 65, 88); setPass(3,'done');
 
-    // Pass 4 — Restore into original docx
     setPass(4,'active');
-    setProgress('Pass 4 — Restoring formatting & images...', 90);
+    setProgress('Pass 4 — Restoring formatting & images…', 90);
 
-    const allTranslatedLines = v3.join('\n').split('\n');
-    const docxB64 = btoa(String.fromCharCode(...new Uint8Array(fileBytes)));
+    // Base64-encode docx safely (chunked to avoid stack overflow on large files)
+    const bytes = new Uint8Array(fileBytes);
+    let b64 = '';
+    const CHUNK = 8192;
+    for (let i = 0; i < bytes.length; i += CHUNK)
+      b64 += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    const docxBase64 = btoa(b64);
 
-    const restoreRes = await fetch('/api/restore', {
+    const translatedLines = v3.join('\n').split('\n');
+    const rRes = await fetch('/api/restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ docxBase64: docxB64, translatedLines: allTranslatedLines })
+      body: JSON.stringify({ docxBase64, translatedLines }),
     });
-    const restoreRaw = await restoreRes.text();
-    let restoreData;
-    try { restoreData = JSON.parse(restoreRaw); } catch { throw new Error(`Restore error: ${restoreRaw.slice(0,150)}`); }
-    if (!restoreRes.ok) throw new Error(restoreData.error || `Restore HTTP ${restoreRes.status}`);
+    const rRaw = await rRes.text();
+    let rData;
+    try { rData = JSON.parse(rRaw); } catch { throw new Error(`Restore error: ${rRaw.slice(0, 120)}`); }
+    if (!rRes.ok) throw new Error(rData.error || `Restore HTTP ${rRes.status}`);
 
-    outputDocxB64 = restoreData.docxBase64;
+    outputB64 = rData.docxBase64;
     setPass(4,'done');
-    setProgress(`Complete — ${restoreData.replaced} paragraphs restored`, 100);
-
-    document.getElementById('exportBtn').classList.add('visible');
+    setProgress(`Complete — ${rData.replaced} paragraphs restored`, 100);
+    $('dlBtn').classList.add('on');
     btn.textContent = 'Translation complete ✓';
-    langSelect.disabled = false;
 
-  } catch(err) {
-    showError(err.message);
-    btn.disabled = false; btn.textContent = 'Retry';
-    langSelect.disabled = false;
+  } catch (e) {
+    err(e.message);
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+  } finally {
+    lang.disabled = false;
   }
 }
 
-function downloadDocx() {
-  if (!outputDocxB64) return;
-  const binary = atob(outputDocxB64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+// ── Download ──────────────────────────────────────────────────────────────────
+function download() {
+  if (!outputB64) return;
+  const langCode = $('lang').value;
+  const bytes = Uint8Array.from(atob(outputB64), c => c.charCodeAt(0));
   const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'field-manual-french.docx';
+  a.download = `field-manual-${langCode}.docx`;
   a.click();
+  URL.revokeObjectURL(a.href);
 }
 
+// ── Reset ─────────────────────────────────────────────────────────────────────
 function reset() {
-  fileBytes = null; markerLines = []; markerMap = {}; outputDocxB64 = null;
-  document.getElementById('fileInfo').classList.remove('visible');
-  document.getElementById('progressWrap').classList.remove('visible');
-  document.getElementById('exportBtn').classList.remove('visible');
-  document.getElementById('submitBtn').disabled = true;
-  document.getElementById('submitBtn').textContent = 'Translate chapter';
-  document.getElementById('fileInput').value = '';
-  document.getElementById('langSelect').disabled = false;
-  document.getElementById('pageGrid').innerHTML = '';
-  showError('');
+  fileBytes = null; markerLines = []; outputB64 = null;
+  $('fileBar').classList.remove('on');
+  $('progWrap').classList.remove('on');
+  $('dlBtn').classList.remove('on');
+  $('goBtn').disabled = true;
+  $('goBtn').textContent = 'Translate';
+  $('fileInput').value = '';
+  $('lang').disabled = false;
+  $('chips').innerHTML = '';
+  err('');
   [1,2,3,4].forEach(n => setPass(n,''));
 }
 </script>
