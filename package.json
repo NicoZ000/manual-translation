@@ -1,10 +1,9 @@
 {
   "name": "field-manual-translator",
-  "version": "1.0.0",
-  "description": "French translation pipeline for A Field Manual to Healing Trauma",
+  "version": "2.0.0",
+  "description": "Literary translation pipeline for A Field Manual to Healing Trauma",
   "private": true,
   "dependencies": {
-    "adm-zip": "^0.5.10",
-    "mammoth": "^1.7.1"
+    "jszip": "^3.10.1"
   }
 }

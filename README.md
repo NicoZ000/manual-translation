@@ -1,30 +1,26 @@
-# Field Manual — French Translation Pipeline
+# Field Manual — Literary Translation Pipeline
 
-A three-pass French translation tool for *A Field Manual to Healing Trauma* by Neo Courtyard.
+Multi-language literary translation tool for *A Field Manual to Healing Trauma* by Neo Courtyard.
 
 ## What it does
 
-1. **Upload** a `.docx` or `.txt` chapter (max 50,000 words)
-2. **Pass 1** — Translates to French in the author's voice
-3. **Pass 2** — French copy editor fixes calques and unnatural phrasing
-4. **Pass 3** — French reader evaluation and final polish
-5. **Export** the result as a Word `.doc` file with image markers preserved
+1. **Upload** a `.docx` file
+2. **Pass 1** — Literary translation in the author's voice (Sonnet 4.6 or Opus 4.7)
+3. **Pass 2** — Native-speaker copy editor pass
+4. **Pass 3** — Final literary polish
+5. **Download** the result as a fully formatted `.docx` with all styles, headings, and images preserved
 
-Image placeholders (e.g. `⟦IMG_001⟧`) are preserved through all passes so formatting can be restored after translation.
+Supports: French, German, Dutch, Italian.
 
 ## Setup
 
-### 1. Clone and deploy to Vercel
+### 1. Deploy to Vercel
 
-```bash
-git clone <your-repo>
-cd field-manual-translator
-vercel deploy
-```
+Connect your GitHub repo to Vercel. Framework preset: **Other**. Output directory: `public`.
 
 ### 2. Add your Anthropic API key
 
-In Vercel dashboard → Project → Settings → Environment Variables:
+Vercel dashboard → Project → Settings → Environment Variables:
 
 ```
 ANTHROPIC_API_KEY = sk-ant-...
@@ -32,31 +28,14 @@ ANTHROPIC_API_KEY = sk-ant-...
 
 Redeploy after adding the key.
 
-### 3. Use it
-
-- Go to your Vercel URL
-- Upload a chapter `.docx` or `.txt`
-- Word count is shown — must be under 50,000
-- Click **Translate chapter**
-- Wait ~60–90 seconds for all three passes
-- Click **Export to Word** when done
-
 ## Project structure
 
 ```
 /
 ├── api/
-│   └── translate.js      # Vercel serverless function (proxy to Anthropic API)
+│   └── translate.js   # Serverless function — Anthropic API proxy (120s timeout)
 ├── public/
-│   └── index.html        # Frontend UI
-├── vercel.json           # Vercel config (120s timeout for long translations)
-├── package.json
-└── README.md
+│   └── index.html     # Frontend — marker extraction, translation pipeline, zip restore
+├── vercel.json        # 120s timeout, fra1 region
+└── package.json
 ```
-
-## Notes
-
-- The API function runs server-side so your API key is never exposed to the browser
-- Each pass can take 20–40 seconds for a full chapter
-- The 120-second function timeout handles even long chapters
-- Image markers `⟦IMG_001⟧` through `⟦IMG_005⟧` (or more) are preserved and highlighted in the export

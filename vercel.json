@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/translate.js": { "maxDuration": 60 }
+    "api/translate.js": { "maxDuration": 120 }
   },
   "regions": ["fra1"]
 }

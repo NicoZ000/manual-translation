@@ -1,6 +1,7 @@
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 120 };
 
-// Language profiles — each drives all three passes
+// ── Language profiles ──────────────────────────────────────────────────────────
+
 const LANG = {
   fr: {
     name: 'French', form: 'tu',
@@ -40,17 +41,14 @@ const LANG = {
   },
 };
 
-// Shared author voice block — sent once in pass 1 only
 const AUTHOR_VOICE = `THE AUTHOR: highly literate, intellectually rigorous, writing from lived experience. Prose is precise without being clinical, vulnerable without being sentimental. Wide vocabulary used with intention. Rhythm alternates long considered sentences with short declaratives that land hard. Speaks directly to the reader, person to person.`;
 
-// Shared marker rule — identical across all passes
 const MARKER_RULE = `MARKERS: ⟦P001⟧ and ⟦IMG001⟧ style codes are structural — never translate, move, merge, or remove them. Return text only, no preamble.`;
 
-// Em dash rule — applied in all three passes
-const NO_EM_DASH = `EM DASH PROHIBITION: Never use the em dash (—) character anywhere in the output. Where an em dash would appear, rephrase the sentence entirely so it is not needed. Use subordinate clauses, commas, semicolons, colons, or restructure the sentence. Do not substitute an en dash (–) either. This is absolute.`;
+const NO_EM_DASH = `EM DASH PROHIBITION: Never use the em dash (—) or en dash (–) character anywhere in the output. Where one would appear, rephrase the sentence using subordinate clauses, commas, semicolons, or colons. This is absolute.`;
 
 function buildSystem(p, pass) {
-  if (pass === 1) return `You are a distinguished ${p.name} literary translator for memoir and personal essay. Your output reads as original ${p.name} prose — never as a translation.
+  if (pass === 1) return `You are a distinguished ${p.name} literary translator specialising in memoir and personal essay. Your output reads as original ${p.name} prose — never as a translation.
 
 ${AUTHOR_VOICE}
 
@@ -75,7 +73,6 @@ Refine this ${p.name} translation into original literary prose:
 — ${NO_EM_DASH}
 — ${MARKER_RULE}`;
 
-  // pass === 3
   return `You are a native ${p.name} reader — serious, literary, attuned to ${p.bench}. You hear immediately when something has been translated rather than written.
 
 Final pass:
@@ -86,6 +83,8 @@ Final pass:
 — ${NO_EM_DASH}
 — ${MARKER_RULE}`;
 }
+
+// ── Handler with streaming ─────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -113,33 +112,62 @@ export default async function handler(req, res) {
   };
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Use streaming to avoid 120s timeout on long chunks
+    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': key,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'messages-2023-12-15',
       },
       body: JSON.stringify({
         model,
         max_tokens: 8000,
+        stream: true,
         system: buildSystem(p, pass),
         messages: [{ role: 'user', content: userPrompts[pass] }],
       }),
     });
 
-    const raw = await response.text();
-    let data;
-    try { data = JSON.parse(raw); } catch {
-      return res.status(500).json({ error: `Non-JSON from Anthropic (${response.status}): ${raw.slice(0, 200)}` });
+    if (!upstream.ok) {
+      const err = await upstream.text();
+      return res.status(upstream.status).json({ error: `Anthropic ${upstream.status}: ${err.slice(0, 200)}` });
     }
-    if (!response.ok) return res.status(response.status).json({ error: data.error?.message || `Anthropic ${response.status}` });
-    if (!data.content?.[0]?.text) return res.status(500).json({ error: 'Unexpected response structure' });
 
-    // Safety net: strip any em dashes that slipped through despite the instruction
-    const result = data.content[0].text.replace(/—/g, ',').replace(/–/g, ',');
+    // Collect streamed text and return as single JSON response
+    // This keeps the client simple while the stream prevents Vercel timeout
+    let result = '';
+    const reader = upstream.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const event = JSON.parse(data);
+          if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+            result += event.delta.text;
+          }
+        } catch { /* skip malformed SSE lines */ }
+      }
+    }
+
+    if (!result) return res.status(500).json({ error: 'Empty response from Anthropic' });
+
+    // Strip em dashes as safety net
+    result = result.replace(/—/g, ',').replace(/–/g, ',');
 
     return res.status(200).json({ result });
+
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
