@@ -295,6 +295,14 @@ async function buildMarkers() {
   const paraRe = /<w:p[ >][\s\S]*?<\/w:p>/g;
   let match;
 
+  function isDuplicated(block) {
+    const parts = [...block.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)]
+      .map(m => m[1]).filter(t => t.trim());
+    const full = parts.join('');
+    const half = Math.floor(full.length / 2);
+    return full.length > 50 && full.slice(0, half) === full.slice(half);
+  }
+
   while ((match = paraRe.exec(xml)) !== null) {
     const block = match[0];
     if (inSkip(match.index)) continue;
@@ -305,8 +313,10 @@ async function buildMarkers() {
     if (hasImage) {
       // Always mark the image
       markerLines.push(`\u27e6IMG${String(++iC).padStart(3,'0')}\u27e7`);
-      // If paragraph also has text, mark it for translation too
-      if (text) markerLines.push(`\u27e6P${String(++pC).padStart(3,'0')}\u27e7 ${text}`);
+      // Skip duplicated content control boxes (their text appears in sibling paras)
+      if (text && !isDuplicated(block)) {
+        markerLines.push(`\u27e6P${String(++pC).padStart(3,'0')}\u27e7 ${text}`);
+      }
       continue;
     }
 
@@ -364,10 +374,13 @@ function buildChips(n) {
 // ── API call ──────────────────────────────────────────────────────────────────
 async function api(text, pass) {
   const language = $('lang').value;
+  // Prepend a sentinel so the model never sees a ⟦marker⟧ as the first character
+  // — models sometimes strip leading markers thinking they are preamble
+  const sentinel = `[SECTION]\n`;
   const res = await fetch('/api/translate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, pass, language, quality }),
+    body: JSON.stringify({ text: sentinel + text, pass, language, quality }),
   });
 
   if (!res.ok) {
@@ -377,7 +390,6 @@ async function api(text, pass) {
     throw new Error(`Server error ${res.status}: ${msg}`);
   }
 
-  // Read streaming plain text response
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let result = '';
@@ -386,11 +398,13 @@ async function api(text, pass) {
     if (done) break;
     result += decoder.decode(value, { stream: true });
   }
-  result += decoder.decode(); // flush
+  result += decoder.decode();
 
   if (!result) throw new Error('Empty response from server');
 
-  // Strip any em dashes that slipped through
+  // Strip the sentinel line from output if model echoed it
+  result = result.replace(/^\[SECTION\]\n?/, '').trim();
+
   return result.replace(/—/g, ',').replace(/–/g, ',');
 }
 
@@ -612,12 +626,18 @@ async function restoreInBrowser(translatedLines) {
     const text = [...block.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m => m[1]).join('').trim();
 
     if (hasImage) {
-      // Mirror buildMarkers: image-only → skip; image+text → increment pCounter
+      // Skip duplicated content control boxes
       if (text) {
-        pCounter++;
-        const mid = `P${String(pCounter).padStart(3, '0')}`;
-        const translated = translations[mid];
-        if (translated) replacements.push({ start: match.index, end: match.index + block.length, block, translated });
+        const parts = [...block.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m=>m[1]).filter(t=>t.trim());
+        const full = parts.join('');
+        const half = Math.floor(full.length/2);
+        const isDup = full.length > 50 && full.slice(0,half) === full.slice(half);
+        if (!isDup) {
+          pCounter++;
+          const mid = `P${String(pCounter).padStart(3, '0')}`;
+          const translated = translations[mid];
+          if (translated) replacements.push({ start: match.index, end: match.index + block.length, block, translated });
+        }
       }
       continue;
     }

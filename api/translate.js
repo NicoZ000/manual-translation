@@ -43,7 +43,7 @@ const LANG = {
 
 const AUTHOR_VOICE = `THE AUTHOR: highly literate, intellectually rigorous, writing from lived experience. Prose is precise without being clinical, vulnerable without being sentimental. Wide vocabulary used with intention. Rhythm alternates long considered sentences with short declaratives that land hard. Speaks directly to the reader, person to person.`;
 
-const MARKER_RULE = `MARKERS: ⟦P001⟧ and ⟦IMG001⟧ style codes are structural — never translate, move, merge, or remove them. Return text only, no preamble.`;
+const MARKER_RULE = `MARKERS: ⟦P001⟧ and ⟦IMG001⟧ style codes are structural — never translate, move, merge, or remove them. The input may begin with [SECTION] — ignore it, do not include it in output. Return text only, no preamble.`;
 
 const NO_EM_DASH = `EM DASH PROHIBITION: Never use the em dash (—) or en dash (–) character anywhere in the output. Where one would appear, rephrase the sentence using subordinate clauses, commas, semicolons, or colons. This is absolute.`;
 

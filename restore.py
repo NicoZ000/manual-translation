@@ -56,6 +56,17 @@ def has_image(para):
             para.find('.//{%s}anchor' % WP) is not None)
 
 
+def is_duplicated_content(para):
+    """Detect content control boxes where text is duplicated in w:t elements.
+    These appear as IMG+TEXT paragraphs but their content is already present
+    in standalone sibling paragraphs — skip them from the counter."""
+    t_elems = para.findall('.//{%s}t' % W)
+    texts = [t.text or '' for t in t_elems if t.text and t.text.strip()]
+    full = ''.join(texts)
+    half = len(full) // 2
+    return len(full) > 50 and full[:half] == full[half:]
+
+
 def in_skip(para):
     """Skip TOC (sdt) and hyperlinks — but NOT tables (they contain content)."""
     parent = para.getparent()
@@ -100,6 +111,9 @@ def restore(original_docx, translation_txt, output_docx):
             continue
 
         if has_img:
+            # Skip content control boxes where text is duplicated
+            if is_duplicated_content(para):
+                continue
             # Mixed image+text paragraph: translate the text, leave image untouched
             if visible:
                 p_counter += 1
