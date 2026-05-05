@@ -118,7 +118,7 @@
       <div class="pass" id="p1"><div class="pass-t">Pass 1</div><div class="pass-d">Translation</div></div>
       <div class="pass" id="p2"><div class="pass-t">Pass 2</div><div class="pass-d">Copy editor</div></div>
       <div class="pass" id="p3"><div class="pass-t">Pass 3</div><div class="pass-d">Reader polish</div></div>
-      <div class="pass" id="p4"><div class="pass-t">Pass 4</div><div class="pass-d">Restore docx</div></div>
+      <div class="pass" id="p4"><div class="pass-t">Pass 4</div><div class="pass-d">Save text</div></div>
     </div>
     <div class="prog-hdr">
       <span class="prog-lbl" id="progLbl">Starting…</span>
@@ -147,7 +147,7 @@
     </div>
     <div class="btns">
       <button class="btn btn-go"  id="goBtn"  onclick="run()" disabled>Translate</button>
-      <button class="btn btn-dl"  id="dlBtn"  onclick="download()">⬇ Download .docx</button>
+      <button class="btn btn-dl"  id="dlBtn"  onclick="download()">⬇ Download translation.txt</button>
       <button class="btn btn-rst" onclick="reset()">Reset</button>
     </div>
   </div>
@@ -310,6 +310,8 @@ async function buildMarkers() {
     }
 
     if (!text) continue;
+    // Skip paragraphs whose text IS XML (field codes stored as text in TOC)
+    if (text.includes('<w:') || text.includes('</w:')) continue;
     markerLines.push(`\u27e6P${String(++pC).padStart(3,'0')}\u27e7 ${text}`);
   }
 }
@@ -424,12 +426,16 @@ async function run() {
     const v3 = await runPass(slice(v2, WORDS_PER_PAGE[3]), 3, 'Pass 3 — Polishing', 65, 88); setPass(3,'done');
 
     setPass(4,'active');
-    setProgress('Pass 4 — Restoring formatting & images…', 90);
+    setProgress('Pass 4 — Preparing text export…', 90);
 
-    const replaced = await restoreInBrowser(v3.join('\n').split('\n'));
-    outputB64 = replaced.b64;
+    // Store translated text for download
+    // JS zip surgery is unreliable on large files — restore is done locally with Python
+    const finalText = v3.join('\n');
+    window.__translatedText = finalText;
+    window.__targetLang = $('lang').value;
+
     setPass(4,'done');
-    setProgress(`Complete — ${replaced.count} paragraphs restored`, 100);
+    setProgress('Translation complete — download text, then restore with Python', 100);
     $('dlBtn').classList.add('on');
     btn.textContent = 'Translation complete ✓';
 
@@ -526,6 +532,8 @@ async function restoreInBrowser(translatedLines) {
     }
 
     if (!text) continue;
+    // Skip paragraphs whose text IS XML (field codes stored as text)
+    if (text.includes('<w:') || text.includes('</w:')) continue;
     pCounter++;
     const mid = `P${String(pCounter).padStart(3, '0')}`;
     const translated = translations[mid];
@@ -738,13 +746,13 @@ async function restoreInBrowser(translatedLines) {
 
 // ── Download ──────────────────────────────────────────────────────────────────
 function download() {
-  if (!outputB64) return;
+  const text = window.__translatedText;
+  if (!text) return;
   const langCode = $('lang').value;
-  const bytes = Uint8Array.from(atob(outputB64), c => c.charCodeAt(0));
-  const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const blob = new Blob([text], { type: 'text/plain; charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `field-manual-${langCode}-${quality}.docx`;
+  a.download = `translation-${langCode}-${quality}.txt`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -752,6 +760,7 @@ function download() {
 // ── Reset ─────────────────────────────────────────────────────────────────────
 function reset() {
   fileBytes = null; markerLines = []; outputB64 = null;
+  window.__translatedText = null;
   $('fileBar').classList.remove('on');
   $('progWrap').classList.remove('on');
   $('dlBtn').classList.remove('on');
