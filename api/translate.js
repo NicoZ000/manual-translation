@@ -119,7 +119,6 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'x-api-key': key,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'messages-2023-12-15',
       },
       body: JSON.stringify({
         model,
@@ -135,9 +134,12 @@ export default async function handler(req, res) {
       return res.status(upstream.status).json({ error: `Anthropic ${upstream.status}: ${err.slice(0, 200)}` });
     }
 
-    // Collect streamed text and return as single JSON response
-    // This keeps the client simple while the stream prevents Vercel timeout
-    let result = '';
+    // Stream tokens back to client as plain text — prevents Vercel 120s proxy timeout
+    // because data is continuously flowing. Client reassembles into final string.
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('X-Accel-Buffering', 'no'); // disable Nginx buffering if present
+
     const reader = upstream.body.getReader();
     const decoder = new TextDecoder();
 
@@ -155,18 +157,13 @@ export default async function handler(req, res) {
         try {
           const event = JSON.parse(data);
           if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-            result += event.delta.text;
+            res.write(event.delta.text);
           }
         } catch { /* skip malformed SSE lines */ }
       }
     }
 
-    if (!result) return res.status(500).json({ error: 'Empty response from Anthropic' });
-
-    // Strip em dashes as safety net
-    result = result.replace(/—/g, ',').replace(/–/g, ',');
-
-    return res.status(200).json({ result });
+    res.end();
 
   } catch (err) {
     return res.status(500).json({ error: err.message });

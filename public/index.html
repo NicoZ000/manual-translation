@@ -350,17 +350,34 @@ function buildChips(n) {
 // ── API call ──────────────────────────────────────────────────────────────────
 async function api(text, pass) {
   const language = $('lang').value;
-  const res  = await fetch('/api/translate', {
+  const res = await fetch('/api/translate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, pass, language, quality }),
   });
-  const raw = await res.text();
-  let data;
-  try { data = JSON.parse(raw); } catch { throw new Error(`Server error ${res.status}: ${raw.slice(0, 120)}`); }
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  if (!data.result) throw new Error('Empty result from API');
-  return data.result;
+
+  if (!res.ok) {
+    const raw = await res.text();
+    let msg;
+    try { msg = JSON.parse(raw).error; } catch { msg = raw.slice(0, 150); }
+    throw new Error(`Server error ${res.status}: ${msg}`);
+  }
+
+  // Read streaming plain text response
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let result = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    result += decoder.decode(value, { stream: true });
+  }
+  result += decoder.decode(); // flush
+
+  if (!result) throw new Error('Empty response from server');
+
+  // Strip any em dashes that slipped through
+  return result.replace(/—/g, ',').replace(/–/g, ',');
 }
 
 async function runPass(pages, passNum, label, p0, p1) {
