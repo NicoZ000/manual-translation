@@ -122,7 +122,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 4000,
+        max_tokens: 8000,
         system: buildSystem(p, pass),
         messages: [{ role: 'user', content: userPrompts[pass] }],
       }),
