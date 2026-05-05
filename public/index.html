@@ -102,7 +102,7 @@
     <input type="file" accept=".docx" id="fileInput" onchange="onFile(this.files[0])" />
     <div class="drop-icon">📄</div>
     <div class="drop-title">Drop your .docx chapter here</div>
-    <div class="drop-hint">Max 50,000 words · Formatting, styles &amp; images preserved · FR · DE · NL · IT</div>
+    <div class="drop-hint">Formatting, styles &amp; images preserved · FR · DE · NL · IT</div>
   </div>
 
   <div class="file-bar" id="fileBar">
@@ -235,17 +235,9 @@ async function onFile(file) {
   const wc = markerLines.reduce((n, l) => n + l.replace(/\u27e6[^\]]+\u27e7/, '').split(/\s+/).filter(Boolean).length, 0);
   const pages = Math.ceil(wc / WORDS_PER_PAGE);
   const badge = document.getElementById('wcBadge');
-
-  if (wc > 50000) {
-    badge.textContent = `${wc.toLocaleString()} words — over limit`;
-    badge.className = 'wc-badge wc-over';
-    document.getElementById('goBtn').disabled = true;
-    err(`${wc.toLocaleString()} words exceeds the 50,000 word limit. Split the file and upload one section at a time.`);
-  } else {
-    badge.textContent = `${wc.toLocaleString()} words · ~${pages} pages`;
-    badge.className = `wc-badge ${wc > 40000 ? 'wc-warn' : 'wc-ok'}`;
-    document.getElementById('goBtn').disabled = false;
-  }
+  badge.textContent = `${wc.toLocaleString()} words · ~${pages} pages`;
+  badge.className = 'wc-badge wc-ok';
+  document.getElementById('goBtn').disabled = false;
 }
 
 // ── Marker extraction (regex on raw XML — no DOMParser, no recursion) ─────────
