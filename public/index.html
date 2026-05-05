@@ -148,6 +148,7 @@
     <div class="btns">
       <button class="btn btn-go"  id="goBtn"  onclick="run()" disabled>Translate</button>
       <button class="btn btn-dl"  id="dlBtn"  onclick="download()">⬇ Download translation.txt</button>
+      <button class="btn btn-resume" id="resumeBtn" onclick="checkResume()" style="display:none">↩ Resume</button>
       <button class="btn btn-rst" onclick="reset()">Reset</button>
     </div>
   </div>
@@ -317,12 +318,23 @@ async function buildMarkers() {
 }
 
 // ── Page slicing ──────────────────────────────────────────────────────────────
-function slice(lines, size) {
+function slice(input, size) {
+  // Input can be an array of page strings (from previous pass) or marker lines
+  // Flatten to individual lines first
+  const lines = Array.isArray(input)
+    ? input.join('\n').split('\n').filter(l => l.trim())
+    : input;
+
   const pages = [];
   let cur = [], wc = 0;
   for (const l of lines) {
-    const w = l.replace(/\u27e6[^\]]+\u27e7/, '').split(/\s+/).filter(Boolean).length;
-    if (wc + w > size && cur.length) { pages.push(cur.join('\n')); cur = []; wc = 0; }
+    const w = l.replace(/\u27e6[^\]]+\u27e7/g, '').split(/\s+/).filter(Boolean).length;
+    // Only break at marker boundaries — never mid-paragraph
+    const isMarker = /^\u27e6(P|IMG)\d+\u27e7/.test(l);
+    if (wc + w > size && cur.length && isMarker) {
+      pages.push(cur.join('\n'));
+      cur = []; wc = 0;
+    }
     cur.push(l); wc += w;
   }
   if (cur.length) pages.push(cur.join('\n'));
@@ -383,15 +395,85 @@ async function api(text, pass) {
 }
 
 async function runPass(pages, passNum, label, p0, p1) {
+  const storageKey = `translation_pass${passNum}`;
   const out = [];
+
+  // Check if we have saved progress for this pass
+  let saved = {};
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      saved = JSON.parse(raw);
+      const savedCount = Object.keys(saved).length;
+      if (savedCount > 0) {
+        console.log(`Resuming pass ${passNum} — ${savedCount} pages already saved`);
+      }
+    }
+  } catch {}
+
   for (let i = 0; i < pages.length; i++) {
+    // Resume from saved if available
+    if (saved[i] !== undefined) {
+      out.push(saved[i]);
+      setChip(i, 'done');
+      setProgress(`${label} — page ${i+1} of ${pages.length} (resumed)`,
+        p0 + ((i+1) / pages.length) * (p1 - p0));
+      continue;
+    }
+
     setChip(i, 'run');
     setProgress(`${label} — page ${i+1} of ${pages.length}`, p0 + (i / pages.length) * (p1 - p0));
-    try   { out.push(await api(pages[i], passNum)); setChip(i, 'done'); }
-    catch (e) { setChip(i, 'err'); throw new Error(`Pass ${passNum} p.${i+1}: ${e.message}`); }
+
+    try {
+      const result = await api(pages[i], passNum);
+      out.push(result);
+      setChip(i, 'done');
+
+      // Save this page immediately to localStorage
+      saved[i] = result;
+      try { localStorage.setItem(storageKey, JSON.stringify(saved)); } catch {}
+
+    } catch (e) {
+      setChip(i, 'err');
+      throw new Error(`Pass ${passNum} p.${i+1}: ${e.message}`);
+    }
   }
+
+  // Clear saved progress for this pass once complete
+  try { localStorage.removeItem(storageKey); } catch {}
+
   return out;
 }
+
+// ── Resume detection ─────────────────────────────────────────────────────────
+function checkResume() {
+  const saved = {};
+  for (let pass = 1; pass <= 3; pass++) {
+    try {
+      const raw = localStorage.getItem(`translation_pass${pass}`);
+      if (raw) saved[pass] = Object.keys(JSON.parse(raw)).length;
+    } catch {}
+  }
+  const total = Object.values(saved).reduce((a, b) => a + b, 0);
+  if (total > 0) {
+    const msg = Object.entries(saved).map(([p, n]) => `Pass ${p}: ${n} pages`).join(', ');
+    err(`Saved progress found (${msg}). Hit Translate to resume from where it stopped.`);
+  } else {
+    err('No saved progress found.');
+  }
+}
+
+// Check for saved progress on page load
+window.addEventListener('load', () => {
+  let hasSaved = false;
+  for (let pass = 1; pass <= 3; pass++) {
+    if (localStorage.getItem(`translation_pass${pass}`)) { hasSaved = true; break; }
+  }
+  if (hasSaved) {
+    $('resumeBtn').style.display = 'flex';
+    err('Saved progress detected. Upload the same file and hit Translate to resume.');
+  }
+});
 
 // ── Main pipeline ─────────────────────────────────────────────────────────────
 async function run() {
@@ -426,16 +508,25 @@ async function run() {
     const v3 = await runPass(slice(v2, WORDS_PER_PAGE[3]), 3, 'Pass 3 — Polishing', 65, 88); setPass(3,'done');
 
     setPass(4,'active');
-    setProgress('Pass 4 — Preparing text export…', 90);
+    setProgress('Pass 4 — Verifying and saving…', 90);
 
-    // Store translated text for download
-    // JS zip surgery is unreliable on large files — restore is done locally with Python
-    const finalText = v3.join('\n');
+    // Reassemble all pages with double newline to prevent marker collisions at boundaries
+    const finalText = v3.join('\n\n');
+
+    // Count markers to verify completeness
+    const pMarkers = (finalText.match(/⟦P\d+⟧/g) || []).length;
+    const expected = markerLines.filter(l => /^⟦P\d+⟧/.test(l)).length;
+
     window.__translatedText = finalText;
     window.__targetLang = $('lang').value;
+    window.__markerCount = { found: pMarkers, expected };
+
+    const countMsg = pMarkers === expected
+      ? `${pMarkers} paragraphs translated`
+      : `⚠ ${pMarkers}/${expected} paragraphs — some may be missing`;
 
     setPass(4,'done');
-    setProgress('Translation complete — download text, then restore with Python', 100);
+    setProgress(`Complete — ${countMsg}`, 100);
     $('dlBtn').classList.add('on');
     btn.textContent = 'Translation complete ✓';
 
@@ -761,6 +852,11 @@ function download() {
 function reset() {
   fileBytes = null; markerLines = []; outputB64 = null;
   window.__translatedText = null;
+  // Clear saved progress
+  for (let pass = 1; pass <= 3; pass++) {
+    try { localStorage.removeItem(`translation_pass${pass}`); } catch {}
+  }
+  $('resumeBtn').style.display = 'none';
   $('fileBar').classList.remove('on');
   $('progWrap').classList.remove('on');
   $('dlBtn').classList.remove('on');
