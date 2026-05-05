@@ -39,4 +39,3 @@ Redeploy after adding the key.
 ├── vercel.json        # 120s timeout, fra1 region
 └── package.json
 ```
-" "  
