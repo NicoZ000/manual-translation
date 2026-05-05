@@ -20,6 +20,13 @@ const LANG = {
     vocab: '"Zerrissenheit", "Sehnsucht", "Unheimlichkeit" — deploy with intention, not decoration.',
     rhythm: 'Verb arrives late — use this for tension and resolution. Fragmented syntax can carry emotional weight (Müller).',
     editor: 'Suhrkamp / S. Fischer',
+    extra: `GERMAN SYNTAX RULES — apply strictly:
+— Prefer active verbs over noun phrases: "atme tief durch" not "hol tief Luft"; verbal constructions over nominalizations.
+— Compress lists: do not repeat prepositions or relative pronouns. "nicht von einem Therapeuten, Wissenschaftler oder Lebensberater" not "nicht von einem Therapeuten, nicht von einem Wissenschaftler, nicht von einem Lebensberater".
+— Do not stack relative clauses with repeated "die/der/das": "Menschen, die X wollen und Y tun" not "Menschen, die X wollen, die Y tun".
+— Prepositions govern all items in a list — state once: "über seelische, körperliche und sexuelle Traumata" not "über seelische, über körperliche und über sexuelle Traumata".
+— Use "dorthin" for concrete destinations, "dahin" for abstract ones.
+— Headings: prefer active verbal nouns that name the action, not just the topic: "Das im Körper gespeicherte Trauma freisetzen" not "Im Körper gespeichertes Trauma".`,
   },
   nl: {
     name: 'Dutch', form: 'je/jij',
@@ -59,6 +66,7 @@ MANDATE:
 — Structural metaphors (house, glass, puzzle map, protective layers) — keep concrete and consistent.
 — Address the reader as "${p.form}" — intimate, never formal.
 — Pitfalls to avoid: ${p.pitfalls}.
+${p.extra ? '— ' + p.extra : ''}
 — ${NO_EM_DASH}
 — ${MARKER_RULE}`;
 
@@ -70,6 +78,7 @@ Refine this ${p.name} translation into original literary prose:
 — ${p.rhythm}
 — Register: ${p.register}. Literary memoir — not therapeutic, not self-help.
 — Confirm "${p.form}" throughout. Correct any slip.
+${p.extra ? '— ' + p.extra : ''}
 — ${NO_EM_DASH}
 — ${MARKER_RULE}`;
 
